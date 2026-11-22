@@ -1,5 +1,6 @@
 import type { NextAuthConfig } from "next-auth";
 import { decideAccess, HOME_PATH, SIGN_IN_PATH } from "@/lib/auth/access";
+import { readAuthSecret } from "@/lib/server/env";
 
 /**
  * Auth.js settings shared by the proxy and the full server config in auth.ts.
@@ -7,8 +8,10 @@ import { decideAccess, HOME_PATH, SIGN_IN_PATH } from "@/lib/auth/access";
  * Credentials provider (which needs Postgres) is added in auth.ts.
  */
 export const authConfig = {
+  // AUTH_SECRET, or BETTER_AUTH_SECRET when AUTH_SECRET is unset.
+  secret: readAuthSecret(),
   // The Credentials provider only supports JWT sessions: an encrypted,
-  // HTTP-only cookie signed with AUTH_SECRET.
+  // HTTP-only cookie signed with the secret above.
   session: { strategy: "jwt", maxAge: 7 * 24 * 60 * 60 },
   pages: { signIn: SIGN_IN_PATH },
   providers: [],
