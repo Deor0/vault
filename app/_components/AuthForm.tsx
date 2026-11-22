@@ -56,8 +56,7 @@ export function AuthForm({ mode }: { mode: "signin" | "signup" }) {
   );
 
   return (
-    <form action={formAction} className="card auth-card" noValidate>
-      <h1>{mode === "signin" ? "Sign in to Vault" : "Create your Vault account"}</h1>
+    <form action={formAction} className="auth-form" noValidate>
       {state.error ? (
         <p className="form-error" role="alert">
           {state.error}
@@ -86,14 +85,14 @@ export function AuthForm({ mode }: { mode: "signin" | "signup" }) {
         />
       ) : null}
 
-      <button type="submit" className="button primary" disabled={pending}>
-        {pending ? "Working…" : mode === "signin" ? "Sign in" : "Create account"}
+      <button type="submit" className="button primary block" disabled={pending}>
+        {pending ? "Working…" : mode === "signin" ? "Sign in" : "Create owner account"}
       </button>
 
       <p className="muted switch">
         {mode === "signin" ? (
           <>
-            New to Vault? <Link href="/signup">Create an account</Link>
+            No account on this instance yet? <Link href="/signup">Create owner account</Link>
           </>
         ) : (
           <>

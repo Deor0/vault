@@ -23,7 +23,7 @@ function text(formData: FormData, key: string): string | undefined {
 
 /**
  * Sign in with the Credentials provider. On success Auth.js sets the session
- * cookie and redirects to the dashboard (by throwing Next.js's redirect, which
+ * cookie and redirects to Overview (by throwing Next.js's redirect, which
  * must propagate), so this only returns on failure.
  */
 async function signInWithPassword(email: string, password: string): Promise<AuthFormState> {
