@@ -1,6 +1,6 @@
 import { Plaid } from "plaid";
 import { decryptSecret } from "./crypto";
-import { CLIENT_USER_ID, type Deps } from "./deps";
+import type { Deps } from "./deps";
 import { NotFoundError } from "./errors";
 import { getItem, setItemStatus } from "./repo";
 import { syncItem, type SyncResult } from "./sync";
@@ -20,18 +20,20 @@ export type LinkMode = "create" | "update";
  */
 export async function createLinkToken(
   deps: Pick<Deps, "db" | "plaid" | "encryptionKey" | "redirectUri">,
+  userId: string,
   options: { itemId?: string } = {},
 ): Promise<{ linkToken: string; mode: LinkMode }> {
   const base: Plaid.LinkTokenCreateRequest = {
     client_name: "Vault",
     language: "en",
     country_codes: [Plaid.CountryCode.Us],
-    user: { client_user_id: CLIENT_USER_ID },
+    // Plaid needs a stable, non-identifying id per end user: Vault's user uuid.
+    user: { client_user_id: userId },
     ...(deps.redirectUri ? { redirect_uri: deps.redirectUri } : {}),
   };
 
   if (options.itemId) {
-    const item = await getItem(deps.db, options.itemId);
+    const item = await getItem(deps.db, userId, options.itemId);
     if (!item) throw new NotFoundError("Linked item not found");
     const accessToken = decryptSecret(item.access_token_ciphertext, deps.encryptionKey, item.plaid_item_id);
     // Update mode: pass the Item's access_token and no products.
@@ -58,10 +60,11 @@ export async function createLinkToken(
  */
 export async function completeUpdateMode(
   deps: Pick<Deps, "db" | "plaid" | "encryptionKey">,
+  userId: string,
   itemId: string,
 ): Promise<SyncResult> {
-  const item = await getItem(deps.db, itemId);
+  const item = await getItem(deps.db, userId, itemId);
   if (!item) throw new NotFoundError("Linked item not found");
   await setItemStatus(deps.db, item.id, "active", null);
-  return syncItem(deps, item.id);
+  return syncItem(deps, userId, item.id);
 }

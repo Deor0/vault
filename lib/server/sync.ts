@@ -71,9 +71,13 @@ export async function fetchTransactionUpdates(
  * leaves the old cursor and the next sync replays the same changes; upserts
  * keyed on Plaid ids make that replay idempotent.
  */
-export async function syncItem(deps: Pick<Deps, "db" | "plaid" | "encryptionKey">, itemId: string): Promise<SyncResult> {
+export async function syncItem(
+  deps: Pick<Deps, "db" | "plaid" | "encryptionKey">,
+  userId: string,
+  itemId: string,
+): Promise<SyncResult> {
   const { db, plaid } = deps;
-  const item = await getItem(db, itemId);
+  const item = await getItem(db, userId, itemId);
   if (!item) throw new NotFoundError("Linked item not found");
   const accessToken = decryptSecret(item.access_token_ciphertext, deps.encryptionKey, item.plaid_item_id);
   const startCursor = item.transactions_cursor;
@@ -128,13 +132,16 @@ export async function syncItem(deps: Pick<Deps, "db" | "plaid" | "encryptionKey"
   }
 }
 
-/** Sync every linked Item. One Item failing does not stop the others. */
-export async function syncAllItems(deps: Pick<Deps, "db" | "plaid" | "encryptionKey">): Promise<SyncResult[]> {
-  const items = await listItems(deps.db);
+/** Sync every Item `userId` has linked. One Item failing does not stop the others. */
+export async function syncAllItems(
+  deps: Pick<Deps, "db" | "plaid" | "encryptionKey">,
+  userId: string,
+): Promise<SyncResult[]> {
+  const items = await listItems(deps.db, userId);
   const results: SyncResult[] = [];
   for (const item of items) {
     try {
-      results.push(await syncItem(deps, item.id));
+      results.push(await syncItem(deps, userId, item.id));
     } catch (error) {
       const info = plaidErrorInfo(error);
       // Log only Plaid's error code / request id: SDK errors can carry request

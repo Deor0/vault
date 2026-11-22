@@ -25,14 +25,14 @@ export interface TestDb extends Db {
   close(): Promise<void>;
 }
 
-/** A fresh in-process Postgres (PGlite) with Vault's migrations applied. */
-export async function createTestDb(): Promise<TestDb> {
+/** A fresh in-process Postgres (PGlite) with Vault's migrations (or those in `migrationsDir`) applied. */
+export async function createTestDb(migrationsDir?: string): Promise<TestDb> {
   const pg = new PGlite();
   const db: TestDb = {
     ...queryable(pg),
     transaction: (fn) => pg.transaction((tx) => fn(queryable(tx))),
     close: () => pg.close(),
   };
-  await migrate(db);
+  await migrate(db, migrationsDir);
   return db;
 }

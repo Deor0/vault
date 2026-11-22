@@ -1,18 +1,24 @@
+import { redirect } from "next/navigation";
 import { connection } from "next/server";
+import { SIGN_IN_PATH } from "@/lib/auth/access";
 import { getDb } from "@/lib/server/context";
 import { getDashboard, type Dashboard as DashboardData, type DashboardItem } from "@/lib/server/dashboard";
 import { ConfigError } from "@/lib/server/env";
+import { getSessionUserId } from "@/lib/server/session";
 import { formatCategory, formatDateTime, formatMoney, formatTransactionAmount } from "../_lib/format";
 import { PlaidLinkButton } from "./PlaidLinkButton";
 import { RefreshButton } from "./RefreshButton";
 
-/** Linked accounts, balances, and recent transactions, read from Postgres at request time. */
+/** The signed-in user's linked accounts, balances, and recent transactions, read from Postgres at request time. */
 export async function Dashboard() {
   await connection();
+  // The proxy already redirects signed-out visitors; check again where the data is read.
+  const userId = await getSessionUserId();
+  if (!userId) redirect(SIGN_IN_PATH);
 
   let data: DashboardData;
   try {
-    data = await getDashboard(getDb());
+    data = await getDashboard(getDb(), userId);
   } catch (error) {
     return <SetupNotice message={setupMessage(error)} />;
   }

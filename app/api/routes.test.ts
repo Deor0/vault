@@ -4,10 +4,15 @@ import type { Deps } from "@/lib/server/deps";
 import { ConfigError } from "@/lib/server/env";
 import { createTestDb, type TestDb } from "@/tests/support/db";
 import { ACCESS_TOKEN, createFakePlaid, plaidApiError, type FakePlaid } from "@/tests/support/plaid";
+import { createTestUser } from "@/tests/support/users";
 
-/** Route handlers end to end, with the database in-process and Plaid faked. */
+/** Route handlers end to end, with the database in-process, Plaid faked, and the Auth.js session mocked. */
 
-const state: { deps?: Deps; configError?: Error } = {};
+const state: { deps?: Deps; configError?: Error; userId?: string | null } = {};
+
+vi.mock("@/auth", () => ({
+  auth: async () => (state.userId ? { user: { id: state.userId }, expires: "2099-01-01T00:00:00Z" } : null),
+}));
 
 vi.mock("@/lib/server/context", () => ({
   getDeps: () => {
@@ -24,12 +29,15 @@ const { POST: syncPOST } = await import("./sync/route");
 
 let db: TestDb;
 let plaid: FakePlaid;
+let userId: string;
 
 beforeEach(async () => {
   db = await createTestDb();
   plaid = createFakePlaid();
+  userId = await createTestUser(db);
   state.deps = { db, plaid, encryptionKey: randomBytes(32) };
   state.configError = undefined;
+  state.userId = userId;
 });
 
 afterEach(async () => {
@@ -132,5 +140,44 @@ describe("POST /api/plaid/update-complete and /api/sync", () => {
   it("404s for an unknown Item", async () => {
     const response = await syncPOST(jsonRequest("/api/sync", { itemId: "00000000-0000-0000-0000-000000000000" }));
     expect(response.status).toBe(404);
+  });
+});
+
+describe("session gating", () => {
+  const routes = [
+    ["/api/plaid/link-token", () => linkTokenPOST, {}],
+    ["/api/plaid/exchange", () => exchangePOST, { publicToken: "public-sandbox-token" }],
+    ["/api/plaid/update-complete", () => updateCompletePOST, { itemId: "00000000-0000-0000-0000-000000000000" }],
+    ["/api/sync", () => syncPOST, {}],
+  ] as const;
+
+  it.each(routes)("%s answers 401 without a session and never calls Plaid", async (path, handler, body) => {
+    state.userId = null;
+    const response = await handler()(jsonRequest(path, body));
+    expect(response.status).toBe(401);
+    expect(await response.json()).toEqual({ error: { code: "unauthorized", message: "Sign in to continue" } });
+    for (const method of Object.values(plaid)) expect(method).not.toHaveBeenCalled();
+  });
+
+  it("keeps each user's Items to themselves", async () => {
+    const exchange = await (await exchangePOST(jsonRequest("/api/plaid/exchange", { publicToken: "p" }))).json();
+    expect(exchange).toMatchObject({ status: "linked" });
+
+    state.userId = await createTestUser(db, "someone-else@example.com");
+    plaid.getAccounts.mockClear();
+
+    const sync = await syncPOST(jsonRequest("/api/sync", { itemId: exchange.itemId }));
+    expect(sync.status).toBe(404);
+    const reconnect = await linkTokenPOST(jsonRequest("/api/plaid/link-token", { itemId: exchange.itemId }));
+    expect(reconnect.status).toBe(404);
+    const update = await updateCompletePOST(jsonRequest("/api/plaid/update-complete", { itemId: exchange.itemId }));
+    expect(update.status).toBe(404);
+    expect(await (await syncPOST(jsonRequest("/api/sync", {}))).json()).toEqual({ results: [] });
+    expect(plaid.getAccounts).not.toHaveBeenCalled();
+  });
+
+  it("creates Link tokens for the signed-in user", async () => {
+    await linkTokenPOST(jsonRequest("/api/plaid/link-token", {}));
+    expect(plaid.createLinkToken.mock.calls[0][0].user?.client_user_id).toBe(userId);
   });
 });
