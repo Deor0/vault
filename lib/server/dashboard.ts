@@ -1,7 +1,7 @@
 import type { Queryable } from "./db/types";
 import type { ItemStatus } from "./repo";
 
-/** Read models for the dashboard, scoped to one user. Contains no secrets; safe to pass to client components. */
+/** Read models for the UI pages, scoped to one user. Contains no secrets; safe to pass to client components. */
 
 export interface DashboardAccount {
   id: string;

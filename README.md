@@ -226,7 +226,6 @@ keyed on Plaid's ids, so replaying a sync never creates duplicates.
 - Net-worth trend and change since last month (needs balance history, for example a
   `balance_snapshots` table written on each sync)
 - Transaction search, filters, and CSV export; paging beyond the latest 250
-
 - Investment holdings and loan/liability views (the accounts already appear with their balances)
 - Password reset, email verification, and social sign-in (Google, Apple)
 - Deployment and hosting
