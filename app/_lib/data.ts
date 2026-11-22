@@ -7,6 +7,7 @@ import { SIGN_IN_PATH } from "@/lib/auth/access";
 import { getDb } from "@/lib/server/context";
 import { getItemsWithAccounts, getRecentTransactions } from "@/lib/server/dashboard";
 import { getSessionUserId } from "@/lib/server/session";
+import { getSubscriptions } from "@/lib/server/subscriptions";
 import packageJson from "@/package.json";
 
 /**
@@ -27,6 +28,8 @@ export const loadItems = cache(async (userId: string) => getItemsWithAccounts(ge
 export const loadTransactions = cache(async (userId: string, limit: number) =>
   getRecentTransactions(getDb(), userId, limit),
 );
+
+export const loadSubscriptions = cache(async (userId: string) => getSubscriptions(getDb(), userId));
 
 export const VAULT_VERSION = packageJson.version;
 

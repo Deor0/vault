@@ -149,8 +149,8 @@ export async function upsertTransactions(
     const { rows } = await db.query<{ id: string }>(
       `INSERT INTO transactions (item_id, user_id, account_id, plaid_transaction_id, amount, iso_currency_code,
          unofficial_currency_code, date, authorized_date, name, merchant_name, category_primary,
-         category_detailed, payment_channel, pending, pending_transaction_id)
-       SELECT $1, a.user_id, a.id, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
+         category_detailed, payment_channel, pending, pending_transaction_id, merchant_entity_id, website, logo_url)
+       SELECT $1, a.user_id, a.id, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18
        FROM accounts a WHERE a.plaid_account_id = $2 AND a.item_id = $1
        ON CONFLICT (plaid_transaction_id) DO UPDATE SET
          account_id = EXCLUDED.account_id,
@@ -166,6 +166,9 @@ export async function upsertTransactions(
          payment_channel = EXCLUDED.payment_channel,
          pending = EXCLUDED.pending,
          pending_transaction_id = EXCLUDED.pending_transaction_id,
+         merchant_entity_id = EXCLUDED.merchant_entity_id,
+         website = EXCLUDED.website,
+         logo_url = EXCLUDED.logo_url,
          updated_at = now()
        WHERE transactions.item_id = EXCLUDED.item_id
        RETURNING id`,
@@ -185,6 +188,9 @@ export async function upsertTransactions(
         txn.payment_channel ?? null,
         txn.pending,
         txn.pending_transaction_id ?? null,
+        txn.merchant_entity_id ?? null,
+        txn.website ?? null,
+        txn.logo_url ?? null,
       ],
     );
     if (rows.length === 0) throw new UnknownAccountError(txn.account_id);

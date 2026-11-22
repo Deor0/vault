@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { formatBalance, formatCategory, formatDay, formatMoney, formatTransactionAmount, groupByDay } from "./format";
+import {
+  formatBalance,
+  formatCadence,
+  formatCategory,
+  formatDay,
+  formatMoney,
+  formatRelativeDay,
+  formatShortDate,
+  formatTransactionAmount,
+  groupByDay,
+} from "./format";
 
 describe("format helpers", () => {
   it("formats money, tolerating unofficial currency codes", () => {
@@ -40,5 +50,17 @@ describe("format helpers", () => {
       { date: "2026-11-01", rows: [rows[2]] },
     ]);
     expect(groupByDay([])).toEqual([]);
+  });
+});
+
+describe("subscription formatting", () => {
+  it("labels cadences and relative days", () => {
+    expect(formatCadence("monthly")).toBe("Monthly");
+    expect(formatCadence("semi_monthly")).toBe("Twice a month");
+    expect(formatRelativeDay("2026-11-22", "2026-11-22")).toBe("today");
+    expect(formatRelativeDay("2026-11-23", "2026-11-22")).toBe("tomorrow");
+    expect(formatRelativeDay("2026-12-21", "2026-11-22")).toBe("in 29 days");
+    expect(formatRelativeDay("2026-11-19", "2026-11-22")).toBe("3 days ago");
+    expect(formatShortDate("2026-12-21")).toBe("Dec 21, 2026");
   });
 });

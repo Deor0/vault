@@ -1069,6 +1069,354 @@ td.num {
   text-align: center;
 }
 
+/* ---------- Subscriptions ---------- */
+
+.accent {
+  color: var(--accent);
+}
+
+.tag-new {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: transparent;
+}
+
+.tag-up {
+  color: var(--warn);
+  background: var(--warn-soft);
+  border-color: transparent;
+}
+
+.tag-down {
+  color: var(--positive);
+  background: var(--positive-soft);
+  border-color: transparent;
+}
+
+.tag-muted {
+  color: var(--muted);
+  border-color: var(--line-strong);
+}
+
+/* Full-width notice lines (same shape as the Overview Reconnect line). */
+.alert-line {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  padding: 9px 12px;
+  border: 1px solid var(--line-strong);
+  border-left-width: 3px;
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.alert-line > span:nth-child(2),
+.alert-line > .review-body {
+  flex: 1;
+  min-width: 220px;
+}
+
+.alert-bad {
+  border-color: var(--negative);
+  background: var(--negative-soft);
+}
+
+.alert-review {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.review-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  margin-top: 6px;
+  border-top: 1px solid var(--line);
+}
+
+.review-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.review-list li:last-child .review-item {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.view-tabs .segment {
+  color: var(--muted);
+}
+
+.view-tabs .segment:hover {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.view-tabs .segment.active {
+  color: var(--ink);
+}
+
+/* Fixed column shares so the active and inactive tables line up. */
+.subs-table thead th:nth-child(1) {
+  width: 30%;
+}
+
+.subs-table thead th:nth-child(2) {
+  width: 11%;
+}
+
+.subs-table thead th:nth-child(3) {
+  width: 9%;
+}
+
+.subs-table thead th:nth-child(4) {
+  width: 12%;
+}
+
+.subs-table thead th:nth-child(5) {
+  width: 17%;
+}
+
+.subs-table thead th:nth-child(6) {
+  width: 9%;
+}
+
+.sub-name {
+  min-width: 180px;
+}
+
+.sub-title {
+  font-weight: 500;
+  margin-right: 6px;
+}
+
+.sub-badges {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  vertical-align: 1px;
+}
+
+.sub-badges .badge {
+  margin-left: 0;
+}
+
+.sub-cadence,
+.sub-account {
+  white-space: nowrap;
+}
+
+.sub-when {
+  white-space: nowrap;
+}
+
+.sub-relative {
+  display: block;
+}
+
+.sub-meta {
+  display: none;
+}
+
+.sub-actions {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.sub-actions .button + .button {
+  margin-left: 6px;
+}
+
+.button.pressed {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.subs-inactive .sub-title {
+  color: var(--muted);
+}
+
+.sub-group.open > .sub-row,
+.sub-group.open > .sub-row > td {
+  background: var(--surface-2);
+}
+
+.section-header.wrap {
+  flex-wrap: wrap;
+  gap: 2px 12px;
+}
+
+.section-header.wrap h2 {
+  white-space: nowrap;
+}
+
+.sub-panel-row > td {
+  background: var(--surface-2);
+  padding: 4px var(--cell-x) 16px;
+}
+
+.sub-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 16px 28px;
+}
+
+.sub-panel h3 {
+  font-weight: 500;
+  margin: 6px 0 8px;
+}
+
+.cancel-side h3 + .hint,
+.cancel-side h3 + .muted {
+  margin-bottom: 8px;
+}
+
+.cancel-side h3:not(:first-child) {
+  margin-top: 16px;
+}
+
+.cancel-route {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.cancel-route:first-of-type {
+  padding-top: 0;
+}
+
+.cancel-route-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+}
+
+.cancel-route-head .button:hover {
+  text-decoration: none;
+}
+
+.cancel-channels {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.cancel-channels .badge {
+  margin-left: 0;
+}
+
+.cancel-steps {
+  margin: 8px 0 0 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.cancel-routes > .hint {
+  margin-top: 10px;
+}
+
+.email-preview {
+  margin-top: 8px;
+}
+
+.email-preview summary {
+  cursor: pointer;
+}
+
+.email-preview textarea {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  font: inherit;
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  line-height: 1.5;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  border: 1px solid var(--line-strong);
+  background: var(--bg);
+  color: var(--ink);
+  resize: vertical;
+}
+
+.charges-table {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  border-collapse: separate;
+  border-spacing: 0;
+  background: var(--surface);
+}
+
+.details-charges {
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.charges-table td {
+  padding: 5px 10px;
+}
+
+.details-side {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.details-facts > div {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.details-facts dt {
+  color: var(--muted);
+}
+
+.rename-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.rename-form .field {
+  flex: 1;
+}
+
+
+.ignored-list summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.ignored-list ul {
+  list-style: none;
+  margin-top: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.ignored-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px var(--cell-x);
+  border-bottom: 1px solid var(--line);
+}
+
+.ignored-list li:last-child {
+  border-bottom: none;
+}
+
 /* ---------- Narrower screens: stack side-by-side boxes before they get cramped ---------- */
 
 @media (max-width: 1199px) {
@@ -1284,5 +1632,87 @@ td.num {
   .settings-list > div {
     grid-template-columns: minmax(0, 1fr);
     gap: 2px;
+  }
+}
+
+/* Subscriptions on tablets and phones: two-line rows (name and amount, then cadence · next · account) with the
+   actions below, like the transactions table. */
+@media (max-width: 960px) {
+  .subs-table thead {
+    display: none;
+  }
+
+  .subs-table tr.sub-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "name amount"
+      "meta meta"
+      "actions actions";
+    row-gap: 2px;
+    padding: var(--cell-y) var(--cell-x);
+    border-bottom: 1px solid var(--line);
+  }
+
+  .subs-table tbody:last-of-type tr.sub-row:last-child {
+    border-bottom: none;
+  }
+
+  .subs-table tr.sub-row > td {
+    padding: 0;
+    border: none;
+  }
+
+  .subs-table .sub-cadence,
+  .subs-table .sub-when,
+  .subs-table .sub-account,
+  .subs-table .sub-monthly {
+    display: none;
+  }
+
+  .subs-table .sub-name {
+    grid-area: name;
+    min-width: 0;
+    padding-right: 12px;
+    overflow-wrap: anywhere;
+  }
+
+  .subs-table .sub-amount {
+    grid-area: amount;
+  }
+
+  .subs-table .sub-meta {
+    display: block;
+    grid-area: meta;
+    font-size: 0.9em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .subs-table .sub-actions {
+    grid-area: actions;
+    text-align: left;
+    padding-top: 6px;
+  }
+
+  .subs-table tr.sub-panel-row,
+  .subs-table tr.sub-panel-row > td {
+    display: block;
+  }
+
+  .sub-panel {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Notice lines: the tag, then the message on its own full-width line. */
+  .alert-line > span:nth-child(2),
+  .alert-line > .review-body {
+    flex-basis: 100%;
+    min-width: 0;
+  }
+
+  .rename-form {
+    flex-wrap: wrap;
   }
 }

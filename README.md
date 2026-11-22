@@ -5,7 +5,8 @@ Personal finance app: banks, credit cards, investments, and loans in one place.
 This first milestone is a local web app. You create an account, sign in, and link a bank
 account through [Plaid](https://plaid.com). Vault then shows your net worth as a balance
 sheet (assets and liabilities by account type), your accounts with their current balances,
-and your recent transactions. It runs against Plaid's free **Sandbox** first. Moving to real
+your recent transactions, and the subscriptions and bills you pay, with where to cancel each
+one. It runs against Plaid's free **Sandbox** first. Moving to real
 accounts on Plaid's **Production** (Trial plan) needs only a configuration change.
 
 ## Screenshots
@@ -19,10 +20,13 @@ full size.
 | Overview (`/`) | <a href="docs/screenshots/overview-desktop-dark.png"><img src="docs/screenshots/overview-desktop-dark.png" width="240" alt="Overview, desktop, dark theme"></a> | <a href="docs/screenshots/overview-desktop-light.png"><img src="docs/screenshots/overview-desktop-light.png" width="240" alt="Overview, desktop, light theme"></a> | <a href="docs/screenshots/overview-phone-dark.png"><img src="docs/screenshots/overview-phone-dark.png" width="110" alt="Overview, phone, dark theme"></a> | <a href="docs/screenshots/overview-phone-light.png"><img src="docs/screenshots/overview-phone-light.png" width="110" alt="Overview, phone, light theme"></a> |
 | Accounts | <a href="docs/screenshots/accounts-desktop-dark.png"><img src="docs/screenshots/accounts-desktop-dark.png" width="240" alt="Accounts, desktop, dark theme"></a> | <a href="docs/screenshots/accounts-desktop-light.png"><img src="docs/screenshots/accounts-desktop-light.png" width="240" alt="Accounts, desktop, light theme"></a> | <a href="docs/screenshots/accounts-phone-dark.png"><img src="docs/screenshots/accounts-phone-dark.png" width="110" alt="Accounts, phone, dark theme"></a> | <a href="docs/screenshots/accounts-phone-light.png"><img src="docs/screenshots/accounts-phone-light.png" width="110" alt="Accounts, phone, light theme"></a> |
 | Transactions | <a href="docs/screenshots/transactions-desktop-dark.png"><img src="docs/screenshots/transactions-desktop-dark.png" width="240" alt="Transactions, desktop, dark theme"></a> | <a href="docs/screenshots/transactions-desktop-light.png"><img src="docs/screenshots/transactions-desktop-light.png" width="240" alt="Transactions, desktop, light theme"></a> | <a href="docs/screenshots/transactions-phone-dark.png"><img src="docs/screenshots/transactions-phone-dark.png" width="110" alt="Transactions, phone, dark theme"></a> | <a href="docs/screenshots/transactions-phone-light.png"><img src="docs/screenshots/transactions-phone-light.png" width="110" alt="Transactions, phone, light theme"></a> |
+| Subscriptions | <a href="docs/screenshots/subscriptions-desktop-dark.png"><img src="docs/screenshots/subscriptions-desktop-dark.png" width="240" alt="Subscriptions, desktop, dark theme"></a> | <a href="docs/screenshots/subscriptions-desktop-light.png"><img src="docs/screenshots/subscriptions-desktop-light.png" width="240" alt="Subscriptions, desktop, light theme"></a> | <a href="docs/screenshots/subscriptions-phone-dark.png"><img src="docs/screenshots/subscriptions-phone-dark.png" width="110" alt="Subscriptions, phone, dark theme"></a> | <a href="docs/screenshots/subscriptions-phone-light.png"><img src="docs/screenshots/subscriptions-phone-light.png" width="110" alt="Subscriptions, phone, light theme"></a> |
 | Settings | <a href="docs/screenshots/settings-desktop-dark.png"><img src="docs/screenshots/settings-desktop-dark.png" width="240" alt="Settings, desktop, dark theme"></a> | <a href="docs/screenshots/settings-desktop-light.png"><img src="docs/screenshots/settings-desktop-light.png" width="240" alt="Settings, desktop, light theme"></a> | <a href="docs/screenshots/settings-phone-dark.png"><img src="docs/screenshots/settings-phone-dark.png" width="110" alt="Settings, phone, dark theme"></a> | <a href="docs/screenshots/settings-phone-light.png"><img src="docs/screenshots/settings-phone-light.png" width="110" alt="Settings, phone, light theme"></a> |
 | First run (nothing linked) | <a href="docs/screenshots/empty-desktop-dark.png"><img src="docs/screenshots/empty-desktop-dark.png" width="240" alt="First run, desktop, dark theme"></a> | <a href="docs/screenshots/empty-desktop-light.png"><img src="docs/screenshots/empty-desktop-light.png" width="240" alt="First run, desktop, light theme"></a> | <a href="docs/screenshots/empty-phone-dark.png"><img src="docs/screenshots/empty-phone-dark.png" width="110" alt="First run, phone, dark theme"></a> | <a href="docs/screenshots/empty-phone-light.png"><img src="docs/screenshots/empty-phone-light.png" width="110" alt="First run, phone, light theme"></a> |
 | Sign in | <a href="docs/screenshots/signin-desktop-dark.png"><img src="docs/screenshots/signin-desktop-dark.png" width="240" alt="Sign in, desktop, dark theme"></a> | <a href="docs/screenshots/signin-desktop-light.png"><img src="docs/screenshots/signin-desktop-light.png" width="240" alt="Sign in, desktop, light theme"></a> | <a href="docs/screenshots/signin-phone-dark.png"><img src="docs/screenshots/signin-phone-dark.png" width="110" alt="Sign in, phone, dark theme"></a> | <a href="docs/screenshots/signin-phone-light.png"><img src="docs/screenshots/signin-phone-light.png" width="110" alt="Sign in, phone, light theme"></a> |
 | Sign up | <a href="docs/screenshots/signup-desktop-dark.png"><img src="docs/screenshots/signup-desktop-dark.png" width="240" alt="Sign up, desktop, dark theme"></a> | <a href="docs/screenshots/signup-desktop-light.png"><img src="docs/screenshots/signup-desktop-light.png" width="240" alt="Sign up, desktop, light theme"></a> | <a href="docs/screenshots/signup-phone-dark.png"><img src="docs/screenshots/signup-phone-dark.png" width="110" alt="Sign up, phone, dark theme"></a> | <a href="docs/screenshots/signup-phone-light.png"><img src="docs/screenshots/signup-phone-light.png" width="110" alt="Sign up, phone, light theme"></a> |
+
+Subscriptions with a row's **Cancel** panel open: [desktop, dark](docs/screenshots/subscriptions-cancel-desktop-dark.png).
 
 ## Stack
 
@@ -128,6 +132,9 @@ No code changes are needed. Keep these Trial plan limits in mind:
     status, last sync time, **Reconnect**, type, and current, available, and limit balances.
   - **Transactions** (`/transactions`): the latest 250 transactions. A table on wide screens;
     on phones and tablets, two-line rows grouped by day.
+  - **Subscriptions** (`/subscriptions`): recurring charges Vault finds in your stored
+    transactions (see [Subscriptions](#subscriptions) below), split into **Subscriptions**,
+    **Bills**, and **All**.
   - **Settings** (`/settings`): theme (dark by default, or light; saved in the browser), the signed-in
     account with **Sign out**, and instance details.
 - **Link account**: opens Plaid Link. The server creates the `link_token`, then exchanges the
@@ -142,6 +149,57 @@ No code changes are needed. Keep these Trial plan limits in mind:
 
 Amounts follow everyday sign conventions: spending shows as negative and money coming in
 as positive. Plaid itself reports outflows as positive numbers.
+
+### Subscriptions
+
+Vault looks through the last 24 months of stored transactions for charges that repeat on a
+regular rhythm (weekly, every 2 weeks, twice a month, monthly, quarterly, or yearly). It
+groups charges by merchant (Plaid's merchant id when it has one, otherwise the cleaned-up
+merchant name), splits a merchant that bills two plans (two Apple subscriptions, say) by
+amount, and leaves out transfers between your accounts, income, card payments, fees, and
+pending charges. Nothing extra is requested from Plaid, so it works in Sandbox and on the
+Trial plan. Detection runs each time the page loads, so **Refresh** is all it takes to update.
+
+- **Totals**: what the charges in the current view cost per month and per year, how many are
+  active, what is due in the next 30 days, and how many are new. A yearly charge counts as
+  1/12 per month; a bill whose amount varies counts at its typical (median) amount.
+- **Table**: name, cadence, amount, next charge date, the account it is charged to, and the
+  monthly equivalent. A price change on an otherwise fixed charge shows next to the name
+  (for example `▲ $15.49 → $17.99`). On phones and tablets, each row becomes two lines plus its
+  buttons.
+- **Subscriptions | Bills | All**: utilities, phone and internet, insurance, loan payments,
+  government and medical payments, and charges whose amount varies are filed as bills. **Details** → **File under Bills/Subscriptions** moves one.
+- **Needs review**: a recurring charge that started in the last 120 days, or has only two
+  charges so far, waits here until you choose **Keep** or **Ignore**. Ignored charges are listed,
+  collapsed, at the bottom of the page with **Restore**.
+- **Details**: every matched charge, the first and last charge, **Rename**, the
+  bill/subscription switch, and **Not recurring: ignore**.
+- **Inactive**: charges you marked cancelled, and charges that stopped (none since the
+  expected date).
+- **Cancel** opens a panel for that charge:
+  - **Where to cancel**: a link to the page where you cancel, with steps and how the
+    merchant takes cancellations (website, app, phone, chat, in person, or mail). Charges
+    billed through Apple, Google, PayPal, or Amazon point to that platform's subscriptions
+    page first, because that is where they are cancelled. Links come from
+    `data/cancel-links.json`, a hand-curated list of about 50 common US services and the four
+    billing platforms. For anything else Vault links the merchant's website as Plaid reports
+    it, and it always offers a web search.
+  - **Copy cancellation email**: a ready-made request for merchants that cancel by email or
+    chat. Fill in your name and account details before sending.
+  - **Mark cancelled**: records the date and moves the charge to Inactive. If the merchant
+    charges you again after that date, a **charged after cancel** alert appears at the top of
+    the page with what to do (check the confirmation; dispute the charge with your bank or
+    card issuer). **Undo: still subscribed** brings it back.
+
+Vault never contacts a merchant or cancels anything itself: the cancellation happens on the
+merchant's (or billing platform's) own page, and Vault watches for charges afterwards. Links
+and steps are best effort; merchants move their pages, so the merchant's site is the
+authority. Your choices (keep, ignore, rename, bill or subscription, cancelled date) are
+stored per user in `subscription_overrides`.
+
+**Updating an existing install**: this feature adds a migration. Run `npm run db:migrate`
+after pulling. Transactions synced before it get Plaid's merchant id and website only when
+Plaid sends them again; detection falls back to the merchant name until then.
 
 ### Troubleshooting
 
@@ -184,6 +242,9 @@ app/
   _lib/data.ts                   per-request reads (session user, items, transactions), deduped with cache()
   _components/Overview.tsx       net worth, Reconnect lines, balance sheet, recent transactions
   _components/AccountsView.tsx, TransactionsView.tsx, SidebarStatus.tsx  the other data views
+  _components/SubscriptionsView.tsx  Subscriptions page: totals, alerts, review, tables (server)
+  _components/SubscriptionsTable.tsx  client: rows with the Cancel and Details panels
+  _lib/cancel-email.ts           the cancellation email template
   _components/UserMenu.tsx       signed-in user + Sign out
   _components/PlaidLinkButton.tsx  client: Link (new Item) and Reconnect (update mode)
   _components/RefreshButton.tsx  client: manual re-sync
@@ -191,6 +252,7 @@ app/
   api/plaid/exchange/route.ts    POST: exchange public_token, store Item, first sync
   api/plaid/update-complete/route.ts  POST: after update mode, clear error + re-sync
   api/sync/route.ts              POST: Refresh (all Items, or one { itemId })
+  api/subscriptions/override/route.ts  POST: keep, ignore, mark cancelled, rename, bill/subscription
   api/auth/[...nextauth]/route.ts  Auth.js endpoints (session, csrf, callback, signout)
 lib/auth/access.ts               which paths need a session
 lib/server/
@@ -204,6 +266,10 @@ lib/server/
   repo.ts        SQL upserts keyed on Plaid ids
   dashboard.ts   read model for the UI (no secrets)
   balance-sheet.ts  net worth and the Assets | Liabilities split by account type (pure)
+  recurring.ts   recurring-charge detection: cadence, next date, price changes (pure)
+  subscriptions.ts  Subscriptions read model + the user's decisions (subscription_overrides)
+  cancel-links.ts  where to cancel: matches data/cancel-links.json, website, web search
+data/cancel-links.json  curated cancel pages and steps (billing platforms + common US services)
 db/migrations/   SQL schema
 ```
 
@@ -246,5 +312,9 @@ keyed on Plaid's ids, so replaying a sync never creates duplicates.
 - Password reset, email verification, and social sign-in (Google, Apple)
 - Deployment and hosting
 - Plaid webhooks (Refresh is manual for now)
+- Subscriptions: alerts by email or push for price changes, upcoming renewals, and charges
+  after a cancellation; adding subscriptions paid from accounts that are not linked; Plaid's
+  Recurring Transactions add-on as a second signal (it needs a paid plan); pausing a card
+  through a virtual-card service such as Privacy.com
 - Other data sources (SimpleFIN, SnapTrade)
 - Native iOS app

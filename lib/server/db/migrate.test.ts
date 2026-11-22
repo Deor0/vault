@@ -28,16 +28,21 @@ async function insertItem(userId: string | null, plaidItemId = "plaid-item-1") {
 describe("schema", () => {
   it("records every migration and is safe to re-run", async () => {
     const { rows } = await db.query<{ name: string }>("SELECT name FROM schema_migrations ORDER BY name");
-    expect(rows.map((row) => row.name)).toEqual(["0001_init.sql", "0002_users.sql"]);
+    expect(rows.map((row) => row.name)).toEqual(["0001_init.sql", "0002_users.sql", "0003_subscriptions.sql"]);
     expect(await migrate(db)).toEqual([]);
   });
 
-  it("has user ownership columns on Plaid data", async () => {
+  it("has user ownership columns on Plaid data and subscription decisions", async () => {
     const { rows } = await db.query<{ table_name: string }>(
       `SELECT table_name FROM information_schema.columns
        WHERE column_name = 'user_id' AND table_schema = 'public' ORDER BY table_name`,
     );
-    expect(rows.map((row) => row.table_name)).toEqual(["accounts", "plaid_items", "transactions"]);
+    expect(rows.map((row) => row.table_name)).toEqual([
+      "accounts",
+      "plaid_items",
+      "subscription_overrides",
+      "transactions",
+    ]);
   });
 
   it("keeps emails unique and normalized", async () => {
@@ -56,6 +61,22 @@ describe("schema", () => {
         [itemId, bob],
       ),
     ).rejects.toThrow();
+  });
+
+  it("keeps one decision per user and stream, and a cancellation date only on cancelled streams", async () => {
+    const alice = await createTestUser(db, "alice@example.com");
+    const insert = (status: string, cancelledAt: string | null) =>
+      db.query(
+        `INSERT INTO subscription_overrides (user_id, stream_key, status, cancelled_at) VALUES ($1, 'n:netflix', $2, $3)`,
+        [alice, status, cancelledAt],
+      );
+    await expect(insert("cancelled", null)).rejects.toThrow();
+    await expect(insert("confirmed", "2026-11-01")).rejects.toThrow();
+    await expect(insert("paused", null)).rejects.toThrow();
+    await insert("cancelled", "2026-11-01");
+    await expect(insert("confirmed", null)).rejects.toThrow();
+    await db.query("DELETE FROM users WHERE id = $1", [alice]);
+    expect((await db.query("SELECT 1 FROM subscription_overrides")).rows).toHaveLength(0);
   });
 
   it("deletes a user's Plaid data with the user", async () => {
