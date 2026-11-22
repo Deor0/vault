@@ -54,12 +54,30 @@
 :root {
   --font-sans: var(--font-plex-sans), system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: var(--font-plex-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  /*
+   * Type scale. Every font size derives from --type-scale, so the whole
+   * interface grows or shrinks together; the px values are the 1x sizes.
+   */
+  --type-scale: 1.11;
+  --text-3xs: calc(10.5px * var(--type-scale));
+  --text-2xs: calc(11px * var(--type-scale));
+  --text-xs: calc(11.5px * var(--type-scale));
+  --text-sm: calc(12px * var(--type-scale));
+  --text-md: calc(12.5px * var(--type-scale));
+  --text-num: calc(13px * var(--type-scale));
+  --text: calc(13.5px * var(--type-scale));
+  --text-h2: calc(14px * var(--type-scale));
+  --text-brand: calc(15px * var(--type-scale));
+  --text-lg: calc(16px * var(--type-scale));
+  --text-xl: calc(18px * var(--type-scale));
+  --text-h1: calc(20px * var(--type-scale));
+  --text-figure-sm: calc(26px * var(--type-scale));
+  --text-figure: calc(30px * var(--type-scale));
   /* Comfortable density. */
-  --text: 13.5px;
-  --cell-y: 9px;
-  --cell-x: 12px;
+  --cell-y: 10px;
+  --cell-x: 13px;
   --radius: 6px;
-  --sidebar: 208px;
+  --sidebar: 224px;
 }
 
 * {
@@ -82,18 +100,18 @@ body {
 }
 
 h1 {
-  font-size: 20px;
+  font-size: var(--text-h1);
   font-weight: 600;
   letter-spacing: -0.01em;
 }
 
 h2 {
-  font-size: 14px;
+  font-size: var(--text-h2);
   font-weight: 600;
 }
 
 h3 {
-  font-size: 13.5px;
+  font-size: var(--text);
   font-weight: 600;
 }
 
@@ -126,7 +144,7 @@ code {
 }
 
 .hint {
-  font-size: 12.5px;
+  font-size: var(--text-md);
   color: var(--muted);
 }
 
@@ -163,7 +181,7 @@ code {
 
 .button {
   font: inherit;
-  font-size: 13px;
+  font-size: var(--text-num);
   font-weight: 500;
   line-height: 1.2;
   padding: 7px 12px;
@@ -190,13 +208,13 @@ code {
 }
 
 .button.subtle {
-  font-size: 12px;
+  font-size: var(--text-sm);
   padding: 4px 9px;
   background: transparent;
 }
 
 .button.small {
-  font-size: 12px;
+  font-size: var(--text-sm);
   padding: 4px 10px;
 }
 
@@ -226,7 +244,7 @@ code {
 .tag {
   display: inline-block;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--text-2xs);
   line-height: 1.5;
   padding: 0 6px;
   border-radius: 3px;
@@ -254,7 +272,7 @@ code {
 
 .badge {
   display: inline-block;
-  font-size: 11px;
+  font-size: var(--text-2xs);
   padding: 0 6px;
   margin-left: 6px;
   border-radius: 3px;
@@ -292,7 +310,7 @@ code {
   gap: 8px;
   font-family: var(--font-mono);
   font-weight: 600;
-  font-size: 15px;
+  font-size: var(--text-brand);
   letter-spacing: 0.02em;
   color: var(--ink);
   padding: 0 8px;
@@ -346,7 +364,7 @@ code {
 
 .sidebar-heading {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--text-2xs);
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -369,7 +387,7 @@ code {
   padding: 5px 8px;
   border-radius: 4px;
   color: var(--ink);
-  font-size: 12.5px;
+  font-size: var(--text-md);
 }
 
 .institution-link:hover {
@@ -385,7 +403,7 @@ code {
 
 .sidebar-empty {
   padding: 0 8px;
-  font-size: 12.5px;
+  font-size: var(--text-md);
   color: var(--faint);
 }
 
@@ -397,7 +415,7 @@ code {
   gap: 8px;
   padding: 8px;
   border-top: 1px solid var(--line);
-  font-size: 12.5px;
+  font-size: var(--text-md);
 }
 
 .user-label {
@@ -414,7 +432,7 @@ code {
   padding: 8px;
   border-top: 1px solid var(--line);
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--text-2xs);
   color: var(--faint);
 }
 
@@ -503,7 +521,7 @@ code {
 }
 
 .section-link {
-  font-size: 12.5px;
+  font-size: var(--text-md);
 }
 
 table {
@@ -521,7 +539,7 @@ td {
 
 thead th {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--text-2xs);
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -540,7 +558,7 @@ tbody:last-of-type tr:last-child > * {
 }
 
 td.num {
-  font-size: 13px;
+  font-size: var(--text-num);
 }
 
 /* ---------- Overview ---------- */
@@ -567,14 +585,14 @@ td.num {
 .label,
 .networth-facts dt {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--text-2xs);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--faint);
 }
 
 .networth-figure {
-  font-size: 30px;
+  font-size: var(--text-figure);
   font-weight: 500;
   letter-spacing: -0.02em;
   line-height: 1.2;
@@ -587,7 +605,7 @@ td.num {
 }
 
 .networth-facts dd {
-  font-size: 13px;
+  font-size: var(--text-num);
 }
 
 .networth-bar {
@@ -634,7 +652,7 @@ td.num {
 .balance-table caption {
   text-align: left;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--text-2xs);
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -650,7 +668,7 @@ td.num {
 }
 
 .balance-table .group-row th {
-  font-size: 12.5px;
+  font-size: var(--text-md);
 }
 
 .balance-table td.line-name {
@@ -659,7 +677,7 @@ td.num {
 
 .line-inst {
   display: block;
-  font-size: 12px;
+  font-size: var(--text-sm);
 }
 
 .balance-table tfoot > tr > * {
@@ -688,7 +706,7 @@ td.num {
 
 .balance-total strong {
   color: var(--ink);
-  font-size: 16px;
+  font-size: var(--text-lg);
   font-weight: 600;
 }
 
@@ -738,7 +756,7 @@ td.num {
 }
 
 .sync-time {
-  font-size: 12px;
+  font-size: var(--text-sm);
   margin-right: auto;
 }
 
@@ -804,7 +822,7 @@ td.num {
   display: grid;
   place-items: center;
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: var(--text-sm);
   border-radius: 50%;
   border: 1px solid var(--line-strong);
   color: var(--faint);
@@ -854,7 +872,7 @@ td.num {
 
 .settings-list > div {
   display: grid;
-  grid-template-columns: 140px minmax(0, 1fr);
+  grid-template-columns: 150px minmax(0, 1fr);
   align-items: center;
   gap: 12px;
   padding: 8px 0;
@@ -924,7 +942,7 @@ td.num {
 
 .instance-card {
   width: 100%;
-  max-width: 380px;
+  max-width: 410px;
   background: var(--surface);
   border: 1px solid var(--line-strong);
   border-radius: 8px;
@@ -950,7 +968,7 @@ td.num {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 11.5px;
+  font-size: var(--text-xs);
   min-width: 0;
 }
 
@@ -1003,7 +1021,7 @@ td.num {
 }
 
 .instance-card-body h1 {
-  font-size: 18px;
+  font-size: var(--text-xl);
 }
 
 .auth-form {
@@ -1015,7 +1033,7 @@ td.num {
 
 .auth-trust {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--text-2xs);
   color: var(--faint);
   text-align: center;
 }
@@ -1027,7 +1045,7 @@ td.num {
 }
 
 .field label {
-  font-size: 12.5px;
+  font-size: var(--text-md);
   font-weight: 500;
   color: var(--muted);
 }
@@ -1053,7 +1071,7 @@ td.num {
 
 .field-error,
 .form-error {
-  font-size: 12.5px;
+  font-size: var(--text-md);
   color: var(--negative);
 }
 
@@ -1065,7 +1083,7 @@ td.num {
 }
 
 .switch {
-  font-size: 12.5px;
+  font-size: var(--text-md);
   text-align: center;
 }
 
@@ -1101,7 +1119,7 @@ td.num {
 
   .txn-table .day-row > th {
     font-family: var(--font-mono);
-    font-size: 11px;
+    font-size: var(--text-2xs);
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.06em;
@@ -1148,7 +1166,7 @@ td.num {
 
   .txn-table .txn-cat {
     grid-area: cat;
-    font-size: 12px;
+    font-size: var(--text-sm);
     white-space: nowrap;
   }
 
@@ -1159,7 +1177,7 @@ td.num {
 
   .txn-table .txn-acct {
     grid-area: acct;
-    font-size: 12px;
+    font-size: var(--text-sm);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -1194,7 +1212,7 @@ td.num {
   }
 
   .accounts-table .acct-type {
-    font-size: 12px;
+    font-size: var(--text-sm);
     margin-bottom: 4px;
   }
 
@@ -1206,7 +1224,7 @@ td.num {
     content: attr(data-label);
     display: block;
     font-family: var(--font-mono);
-    font-size: 10.5px;
+    font-size: var(--text-3xs);
     text-transform: uppercase;
     letter-spacing: 0.06em;
     color: var(--faint);
@@ -1272,7 +1290,7 @@ td.num {
   }
 
   .networth-figure {
-    font-size: 26px;
+    font-size: var(--text-figure-sm);
   }
 
   /* Reconnect line: tag, then the message, then the button, each on its own line. */
