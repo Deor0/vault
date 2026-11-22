@@ -425,11 +425,11 @@ code {
   white-space: nowrap;
 }
 
+/* The page content uses all the width beside the sidebar; side padding grows a little on wide screens. */
 .main {
   min-width: 0;
   width: 100%;
-  max-width: 1180px;
-  padding: 22px 28px 56px;
+  padding: 22px clamp(28px, 2.5vw, 56px) 56px;
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -702,8 +702,21 @@ td.num {
   display: none;
 }
 
-.txn-desc {
-  width: 40%;
+/* Column shares for wide screens: the date hugs its value, the text columns split the rest. */
+.txn-table thead th:nth-child(1) {
+  width: 1%;
+}
+
+.txn-table thead th:nth-child(2) {
+  width: 36%;
+}
+
+.txn-table thead th:nth-child(3) {
+  width: 20%;
+}
+
+.txn-table thead th:nth-child(4) {
+  width: 28%;
 }
 
 /* ---------- Accounts ---------- */
@@ -731,6 +744,18 @@ td.num {
 
 .acct-type {
   white-space: nowrap;
+}
+
+.accounts-table thead th:nth-child(1) {
+  width: 32%;
+}
+
+.accounts-table thead th:nth-child(2) {
+  width: 20%;
+}
+
+.accounts-table thead th.num {
+  width: 16%;
 }
 
 /* ---------- Empty state ---------- */
@@ -764,6 +789,12 @@ td.num {
 
 .checklist p {
   margin-top: 2px;
+}
+
+/* Keep prose at a readable measure even when its panel is very wide. */
+.checklist p,
+.setup .hint {
+  max-width: 120ch;
 }
 
 .check {
@@ -808,11 +839,17 @@ td.num {
 
 /* ---------- Settings ---------- */
 
+/* Appearance, Account, and Instance side by side on wide screens, stacked below. */
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
 .settings-section {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  max-width: 640px;
 }
 
 .settings-list > div {
@@ -830,6 +867,10 @@ td.num {
 
 .settings-list dt {
   color: var(--muted);
+}
+
+.settings-list dd {
+  overflow-wrap: anywhere;
 }
 
 .segmented {
@@ -1028,66 +1069,25 @@ td.num {
   text-align: center;
 }
 
-/* ---------- Phones: top tabs, stacked boxes, two-line transactions ---------- */
+/* ---------- Narrower screens: stack side-by-side boxes before they get cramped ---------- */
 
-@media (max-width: 760px) {
-  .shell {
-    display: block;
-    background: none;
-  }
-
-  .sidebar {
-    position: sticky;
-    z-index: 10;
-    height: auto;
-    flex-direction: column;
-    gap: 8px;
-    padding: 10px 12px 0;
-    border-right: none;
-    border-bottom: 1px solid var(--line);
-    overflow: visible;
-  }
-
-  .sidebar .wordmark {
-    padding: 0;
-  }
-
-  .nav {
-    flex-direction: row;
-    gap: 0;
-    margin: 0 -12px;
-    padding: 0 4px;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-
-  .nav-link {
-    flex: none;
-    padding: 8px 10px 9px;
-    border-radius: 0;
-  }
-
-  .nav-link.active {
-    background: none;
-    box-shadow: inset 0 -2px 0 var(--accent);
-  }
-
-  .sidebar-status {
-    display: none;
-  }
-
-  .main {
-    padding: 16px 14px 40px;
-    gap: 14px;
-  }
-
-  .balance-columns,
-  .setup-grid {
+@media (max-width: 1199px) {
+  .settings-grid {
     grid-template-columns: minmax(0, 1fr);
   }
+}
 
-  .networth-figure {
-    font-size: 26px;
+@media (max-width: 1080px) {
+  .balance-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---------- Tablets and phones: two-line transactions and accounts, no sideways scroll ---------- */
+
+@media (max-width: 960px) {
+  .setup-grid {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   /* Transactions: hide the column headers; each row becomes two lines under its day. */
@@ -1215,6 +1215,64 @@ td.num {
   .sync-time {
     flex-basis: 100%;
     order: 3;
+  }
+}
+
+/* ---------- Phones: top tabs, compact spacing ---------- */
+
+@media (max-width: 760px) {
+  .shell {
+    display: block;
+    background: none;
+  }
+
+  .sidebar {
+    position: sticky;
+    z-index: 10;
+    height: auto;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 12px 0;
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+    overflow: visible;
+  }
+
+  .sidebar .wordmark {
+    padding: 0;
+  }
+
+  .nav {
+    flex-direction: row;
+    gap: 0;
+    margin: 0 -12px;
+    padding: 0 4px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .nav-link {
+    flex: none;
+    padding: 8px 10px 9px;
+    border-radius: 0;
+  }
+
+  .nav-link.active {
+    background: none;
+    box-shadow: inset 0 -2px 0 var(--accent);
+  }
+
+  .sidebar-status {
+    display: none;
+  }
+
+  .main {
+    padding: 16px 14px 40px;
+    gap: 14px;
+  }
+
+  .networth-figure {
+    font-size: 26px;
   }
 
   /* Reconnect line: tag, then the message, then the button, each on its own line. */
