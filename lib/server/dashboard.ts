@@ -45,11 +45,8 @@ export interface Dashboard {
 
 export const RECENT_TRANSACTIONS_LIMIT = 50;
 
-export async function getDashboard(
-  db: Queryable,
-  userId: string,
-  limit = RECENT_TRANSACTIONS_LIMIT,
-): Promise<Dashboard> {
+/** The user's linked Items (institutions), each with its accounts and balances. */
+export async function getItemsWithAccounts(db: Queryable, userId: string): Promise<DashboardItem[]> {
   const items = await db.query<{
     id: string;
     institution_name: string | null;
@@ -87,6 +84,35 @@ export async function getDashboard(
     [userId],
   );
 
+  return items.rows.map((item) => ({
+    id: item.id,
+    institutionName: item.institution_name,
+    status: item.status,
+    errorCode: item.error_code,
+    lastSyncedAt: item.last_synced_at,
+    accounts: accounts.rows
+      .filter((account) => account.item_id === item.id)
+      .map((account) => ({
+        id: account.id,
+        name: account.name,
+        officialName: account.official_name,
+        mask: account.mask,
+        type: account.type,
+        subtype: account.subtype,
+        currentBalance: account.current_balance,
+        availableBalance: account.available_balance,
+        creditLimit: account.credit_limit,
+        currency: account.currency,
+      })),
+  }));
+}
+
+/** The user's most recent transactions, newest first. */
+export async function getRecentTransactions(
+  db: Queryable,
+  userId: string,
+  limit = RECENT_TRANSACTIONS_LIMIT,
+): Promise<DashboardTransaction[]> {
   const transactions = await db.query<{
     id: string;
     date: string;
@@ -111,39 +137,27 @@ export async function getDashboard(
     [userId, limit],
   );
 
+  return transactions.rows.map((txn) => ({
+    id: txn.id,
+    date: txn.date,
+    name: txn.name,
+    merchantName: txn.merchant_name,
+    category: txn.category_primary,
+    amount: txn.amount,
+    currency: txn.currency,
+    pending: txn.pending,
+    accountName: txn.account_name,
+    accountMask: txn.account_mask,
+  }));
+}
+
+export async function getDashboard(
+  db: Queryable,
+  userId: string,
+  limit = RECENT_TRANSACTIONS_LIMIT,
+): Promise<Dashboard> {
   return {
-    items: items.rows.map((item) => ({
-      id: item.id,
-      institutionName: item.institution_name,
-      status: item.status,
-      errorCode: item.error_code,
-      lastSyncedAt: item.last_synced_at,
-      accounts: accounts.rows
-        .filter((account) => account.item_id === item.id)
-        .map((account) => ({
-          id: account.id,
-          name: account.name,
-          officialName: account.official_name,
-          mask: account.mask,
-          type: account.type,
-          subtype: account.subtype,
-          currentBalance: account.current_balance,
-          availableBalance: account.available_balance,
-          creditLimit: account.credit_limit,
-          currency: account.currency,
-        })),
-    })),
-    transactions: transactions.rows.map((txn) => ({
-      id: txn.id,
-      date: txn.date,
-      name: txn.name,
-      merchantName: txn.merchant_name,
-      category: txn.category_primary,
-      amount: txn.amount,
-      currency: txn.currency,
-      pending: txn.pending,
-      accountName: txn.account_name,
-      accountMask: txn.account_mask,
-    })),
+    items: await getItemsWithAccounts(db, userId),
+    transactions: await getRecentTransactions(db, userId, limit),
   };
 }

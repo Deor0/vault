@@ -3,8 +3,9 @@
 Personal finance app: banks, credit cards, investments, and loans in one place.
 
 This first milestone is a local web app. You create an account, sign in, and link a bank
-account through [Plaid](https://plaid.com). Vault then shows your accounts with their
-current balances and your recent transactions. It runs against Plaid's free **Sandbox** first. Moving to real
+account through [Plaid](https://plaid.com). Vault then shows your net worth as a balance
+sheet (assets and liabilities by account type), your accounts with their current balances,
+and your recent transactions. It runs against Plaid's free **Sandbox** first. Moving to real
 accounts on Plaid's **Production** (Trial plan) needs only a configuration change.
 
 ## Stack
@@ -12,6 +13,8 @@ accounts on Plaid's **Production** (Trial plan) needs only a configuration chang
 - Next.js (App Router) + React + TypeScript for the UI and the server routes
 - [Auth.js](https://authjs.dev) (`next-auth` v5) for email + password sign-in, with
   passwords hashed by bcrypt (`bcryptjs`)
+- IBM Plex Sans and IBM Plex Mono through `next/font/google`: downloaded once when the app
+  builds or the dev server starts, then served by Vault itself (the browser never calls Google)
 - Postgres (local via Docker Compose), with plain SQL migrations in `db/migrations/`
 - Plaid's official Node SDK (`plaid`) and `react-plaid-link` for Plaid Link
 - Vitest for tests. Server tests run against an in-process Postgres
@@ -29,9 +32,9 @@ npm run db:migrate              # create the tables (safe to re-run)
 npm run dev                     # http://127.0.0.1:3000
 ```
 
-Open <http://127.0.0.1:3000>. Vault sends you to **Sign in**; choose **Create an account**,
-enter an email and a password (at least 8 characters), and you land on the dashboard.
-Then click **Link account**. In Sandbox, pick any institution
+Open <http://127.0.0.1:3000>. Vault sends you to **Sign in**; choose **Create owner account**,
+enter an email and a password (at least 8 characters), and you land on **Overview**, which
+shows a short setup checklist until something is linked. Then click **Link account**. In Sandbox, pick any institution
 (for example *First Platypus Bank*). Sign in with username `user_good` and password
 `pass_good`. If Plaid asks for a phone number, use the Sandbox number shown in the Link
 window or choose to continue without one.
@@ -93,9 +96,24 @@ No code changes are needed. Keep these Trial plan limits in mind:
 ## Using the app
 
 - **Sign up / Sign in / Sign out**: every page and API route needs a session. Signed-out
-  visits to the dashboard go to `/signin`, and signed-out API calls get `401`. **Sign out**
-  is at the top right of the dashboard. Each user sees and syncs only the banks they
+  page visits go to `/signin`, and signed-out API calls get `401`. **Sign out** is at the
+  bottom of the sidebar and on **Settings**. Each user sees and syncs only the banks they
   linked.
+- **Pages**: a left sidebar (top tabs on phones) switches between them. It also lists your
+  institutions with their sync status (`ok`, `login`, or `error`) and, at the bottom, this
+  instance's host, version, database status, and Plaid environment.
+  - **Overview** (`/`): net worth, a **Reconnect** line for any bank that needs you to sign
+    in again, then an Assets | Liabilities balance sheet grouped by account type (cash and
+    investments are assets; credit cards and loans are liabilities) with subtotals and a
+    net worth total, then the latest transactions. Totals use the balances stored at the
+    last sync, in the currency most of your accounts use; accounts in another currency or
+    without a reported balance are listed under the totals instead of being added in.
+  - **Accounts** (`/accounts`): every account in one table grouped by institution, with sync
+    status, last sync time, **Reconnect**, type, and current, available, and limit balances.
+  - **Transactions** (`/transactions`): the latest 250 transactions. A table on wide screens;
+    on phones, two-line rows grouped by day.
+  - **Settings** (`/settings`): theme (dark by default, light, or match the system; saved
+    in the browser), the signed-in account with **Sign out**, and instance details.
 - **Link account**: opens Plaid Link. The server creates the `link_token`, then exchanges the
   resulting `public_token` for an access token and stores it encrypted. Vault then fetches
   accounts and balances (`/accounts/get`) and whatever transactions Plaid already has
@@ -142,11 +160,15 @@ auth.ts                          Auth.js: Credentials provider (email + password
 auth.config.ts                   Auth.js settings shared with the proxy (JWT sessions, callbacks)
 proxy.ts                         gates every page and API route behind a session
 app/
-  page.tsx                       dashboard page (static shell + streamed data)
-  signin/, signup/               sign-in and sign-up pages (_components/AuthForm.tsx)
+  layout.tsx                     fonts (IBM Plex Sans + Mono), theme bootstrap, globals.css
+  (app)/layout.tsx               signed-in shell: sidebar / phone tabs (static) + streamed status
+  (app)/page.tsx                 Overview; accounts/, transactions/, settings/ are the other pages
+  signin/, signup/               sign-in and sign-up pages (_components/AuthForm.tsx in InstanceCard.tsx)
   _lib/auth-actions.ts           Server Actions: sign up, sign in, sign out
+  _lib/data.ts                   per-request reads (session user, items, transactions), deduped with cache()
+  _components/Overview.tsx       net worth, Reconnect lines, balance sheet, recent transactions
+  _components/AccountsView.tsx, TransactionsView.tsx, SidebarStatus.tsx  the other data views
   _components/UserMenu.tsx       signed-in user + Sign out
-  _components/Dashboard.tsx      server component: reads the user's data from Postgres
   _components/PlaidLinkButton.tsx  client: Link (new Item) and Reconnect (update mode)
   _components/RefreshButton.tsx  client: manual re-sync
   api/plaid/link-token/route.ts  POST: create link_token ({ itemId } => update mode)
@@ -165,6 +187,7 @@ lib/server/
   link.ts        link_token creation (create vs update mode)
   repo.ts        SQL upserts keyed on Plaid ids
   dashboard.ts   read model for the UI (no secrets)
+  balance-sheet.ts  net worth and the Assets | Liabilities split by account type (pure)
 db/migrations/   SQL schema
 ```
 
@@ -179,7 +202,7 @@ Security notes:
   are Auth.js JWTs in an encrypted, HTTP-only cookie (the Credentials provider supports
   only JWT sessions), valid for 7 days; **Sign out** clears it.
 - Every page and API route checks the session twice: `proxy.ts` redirects signed-out
-  visitors (or answers `401` for `/api/*`), and the dashboard and each route handler read
+  visitors (or answers `401` for `/api/*`), and each page and route handler reads
   the session again before touching data. All queries are scoped to the signed-in user, and
   foreign keys keep each account and transaction owned by the same user as its Item. The
   API routes also accept only same-origin JSON requests (CSRF protection).
@@ -197,6 +220,12 @@ transactions together with the new cursor in one database transaction. Writes ar
 keyed on Plaid's ids, so replaying a sync never creates duplicates.
 
 ## Not built yet (follow-ups)
+
+- Keyboard shortcuts (`G O`/`G A`/`G T` navigation, `j`/`k` row movement, `/` search,
+  `L` link, `R` refresh)
+- Net-worth trend and change since last month (needs balance history, for example a
+  `balance_snapshots` table written on each sync)
+- Transaction search, filters, and CSV export; paging beyond the latest 250
 
 - Investment holdings and loan/liability views (the accounts already appear with their balances)
 - Password reset, email verification, and social sign-in (Google, Apple)

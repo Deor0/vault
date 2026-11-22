@@ -11,12 +11,12 @@ export async function UserMenu() {
   return (
     <div className="user-menu">
       {label ? (
-        <span className="muted" title={session.user.email ?? undefined}>
+        <span className="user-label" title={session.user.email ?? undefined}>
           {label}
         </span>
       ) : null}
       <form action={signOutAction}>
-        <button type="submit" className="button">
+        <button type="submit" className="button subtle">
           Sign out
         </button>
       </form>
