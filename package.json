@@ -1,0 +1,39 @@
+{
+  "name": "vault",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --hostname 127.0.0.1",
+    "build": "next build",
+    "start": "next start --hostname 127.0.0.1",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "db:up": "docker compose up -d db",
+    "db:migrate": "tsx --env-file-if-exists=.env scripts/migrate.ts",
+    "gen:key": "openssl rand -base64 32"
+  },
+  "dependencies": {
+    "next": "16.4.6",
+    "pg": "^8.23.1",
+    "plaid": "^52.0.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-plaid-link": "^5.0.0",
+    "server-only": "^0.0.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.17",
+    "@types/node": "^24",
+    "@types/pg": "^8.23.1",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.4.6",
+    "tsx": "^4.23.15",
+    "typescript": "^5",
+    "vitest": "^5.1.1"
+  }
+}
