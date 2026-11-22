@@ -6,10 +6,11 @@ import { AppError } from "./errors";
 import { plaidErrorInfo } from "./plaid/client";
 
 /**
- * Helpers for the JSON API routes. Vault has no login (single local user), so
- * every mutating route requires a JSON body and a same-origin request: a
- * cross-site page cannot send `application/json` without a CORS preflight,
- * and the Origin check rejects other sites outright.
+ * Helpers for the JSON API routes. Besides the session check, every mutating
+ * route requires a JSON body and a same-origin request: a cross-site page
+ * cannot send `application/json` without a CORS preflight, and the Origin
+ * check rejects other sites outright, so the session cookie cannot be used
+ * from another site (CSRF).
  */
 
 export function assertSameOriginJson(request: Request): void {

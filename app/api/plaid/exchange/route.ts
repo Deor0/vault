@@ -2,6 +2,7 @@ import { z } from "zod";
 import { getDeps } from "@/lib/server/context";
 import { exchangePublicToken } from "@/lib/server/exchange";
 import { handle, parseJsonBody } from "@/lib/server/http";
+import { requireUserId } from "@/lib/server/session";
 
 const bodySchema = z.object({
   publicToken: z.string().min(1, "publicToken is required").max(512),
@@ -16,7 +17,8 @@ const bodySchema = z.object({
 /** Exchange the public_token from Plaid Link for an access_token, stored encrypted server-side. */
 export async function POST(request: Request) {
   return handle(async () => {
+    const userId = await requireUserId();
     const { publicToken, institution } = await parseJsonBody(request, bodySchema);
-    return exchangePublicToken(getDeps(), publicToken, institution ?? {});
+    return exchangePublicToken(getDeps(), userId, publicToken, institution ?? {});
   });
 }

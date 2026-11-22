@@ -17,7 +17,8 @@ export interface InstitutionHint {
 }
 
 /**
- * Exchange a Link public_token for an access_token and store the new Item.
+ * Exchange a Link public_token for an access_token and store the new Item,
+ * owned by `userId`.
  *
  * The access_token is encrypted before it touches the database and is never
  * returned. If the same bank login is already linked, the newly created
@@ -27,6 +28,7 @@ export interface InstitutionHint {
  */
 export async function exchangePublicToken(
   deps: Pick<Deps, "db" | "plaid" | "encryptionKey">,
+  userId: string,
   publicToken: string,
   institutionHint: InstitutionHint = {},
 ): Promise<ExchangeResult> {
@@ -40,7 +42,7 @@ export async function exchangePublicToken(
     const institutionId = accountsResponse.item.institution_id ?? institutionHint.id ?? null;
     const institutionName = accountsResponse.item.institution_name ?? institutionHint.name ?? null;
 
-    const duplicateOf = await findDuplicateItem(db, institutionId, exchange.item_id, accountsResponse.accounts);
+    const duplicateOf = await findDuplicateItem(db, userId, institutionId, exchange.item_id, accountsResponse.accounts);
     if (duplicateOf) {
       await removeItemQuietly(plaid, accessToken);
       return { status: "duplicate", existingItemId: duplicateOf };
@@ -48,6 +50,7 @@ export async function exchangePublicToken(
 
     itemId = await db.transaction(async (tx) => {
       const id = await insertItem(tx, {
+        userId,
         plaidItemId: exchange.item_id,
         accessTokenCiphertext: encryptSecret(accessToken, deps.encryptionKey, exchange.item_id),
         institutionId,
@@ -65,7 +68,7 @@ export async function exchangePublicToken(
   // still be pulling history, and "Refresh" retries later.
   let sync: SyncResult;
   try {
-    sync = await syncItem(deps, itemId);
+    sync = await syncItem(deps, userId, itemId);
   } catch (error) {
     sync = { itemId, status: "error", errorCode: plaidErrorInfo(error)?.errorCode ?? null };
   }
@@ -73,12 +76,13 @@ export async function exchangePublicToken(
 }
 
 /**
- * An Item duplicates an existing one when it is at the same institution and
+ * An Item duplicates one of the user's existing Items when it is at the same institution and
  * shares an account (same mask, name, and type). Plaid recommends this check
  * because the same login linked twice is billed twice.
  */
 async function findDuplicateItem(
   db: Queryable,
+  userId: string,
   institutionId: string | null,
   plaidItemId: string,
   accounts: Plaid.AccountBase[],
@@ -87,8 +91,8 @@ async function findDuplicateItem(
   const { rows } = await db.query<{ item_id: string; mask: string | null; name: string; type: string }>(
     `SELECT i.id AS item_id, a.mask, a.name, a.type
      FROM plaid_items i JOIN accounts a ON a.item_id = i.id
-     WHERE i.institution_id = $1 AND i.plaid_item_id <> $2`,
-    [institutionId, plaidItemId],
+     WHERE i.user_id = $1 AND i.institution_id = $2 AND i.plaid_item_id <> $3`,
+    [userId, institutionId, plaidItemId],
   );
   for (const existing of rows) {
     const match = accounts.some(

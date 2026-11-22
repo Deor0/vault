@@ -1,7 +1,7 @@
 import type { Queryable } from "./db/types";
 import type { ItemStatus } from "./repo";
 
-/** Read models for the dashboard. Contains no secrets; safe to pass to client components. */
+/** Read models for the dashboard, scoped to one user. Contains no secrets; safe to pass to client components. */
 
 export interface DashboardAccount {
   id: string;
@@ -45,7 +45,11 @@ export interface Dashboard {
 
 export const RECENT_TRANSACTIONS_LIMIT = 50;
 
-export async function getDashboard(db: Queryable, limit = RECENT_TRANSACTIONS_LIMIT): Promise<Dashboard> {
+export async function getDashboard(
+  db: Queryable,
+  userId: string,
+  limit = RECENT_TRANSACTIONS_LIMIT,
+): Promise<Dashboard> {
   const items = await db.query<{
     id: string;
     institution_name: string | null;
@@ -55,7 +59,8 @@ export async function getDashboard(db: Queryable, limit = RECENT_TRANSACTIONS_LI
   }>(
     `SELECT id, institution_name, status, error_code,
        to_char(last_synced_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS last_synced_at
-     FROM plaid_items ORDER BY created_at`,
+     FROM plaid_items WHERE user_id = $1 ORDER BY created_at`,
+    [userId],
   );
 
   const accounts = await db.query<{
@@ -71,12 +76,15 @@ export async function getDashboard(db: Queryable, limit = RECENT_TRANSACTIONS_LI
     credit_limit: number | null;
     currency: string | null;
   }>(
-    `SELECT id, item_id, name, official_name, mask, type, subtype,
-       current_balance::float8 AS current_balance,
-       available_balance::float8 AS available_balance,
-       credit_limit::float8 AS credit_limit,
-       COALESCE(iso_currency_code, unofficial_currency_code) AS currency
-     FROM accounts ORDER BY type, name`,
+    `SELECT a.id, a.item_id, a.name, a.official_name, a.mask, a.type, a.subtype,
+       a.current_balance::float8 AS current_balance,
+       a.available_balance::float8 AS available_balance,
+       a.credit_limit::float8 AS credit_limit,
+       COALESCE(a.iso_currency_code, a.unofficial_currency_code) AS currency
+     FROM accounts a JOIN plaid_items i ON i.id = a.item_id
+     WHERE i.user_id = $1
+     ORDER BY a.type, a.name`,
+    [userId],
   );
 
   const transactions = await db.query<{
@@ -94,10 +102,13 @@ export async function getDashboard(db: Queryable, limit = RECENT_TRANSACTIONS_LI
     `SELECT t.id, t.date::text AS date, t.name, t.merchant_name, t.category_primary,
        t.amount::float8 AS amount, COALESCE(t.iso_currency_code, t.unofficial_currency_code) AS currency,
        t.pending, a.name AS account_name, a.mask AS account_mask
-     FROM transactions t JOIN accounts a ON a.id = t.account_id
+     FROM transactions t
+       JOIN accounts a ON a.id = t.account_id
+       JOIN plaid_items i ON i.id = t.item_id
+     WHERE i.user_id = $1
      ORDER BY t.date DESC, t.created_at DESC, t.id
-     LIMIT $1`,
-    [limit],
+     LIMIT $2`,
+    [userId, limit],
   );
 
   return {

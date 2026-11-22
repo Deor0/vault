@@ -1,12 +1,18 @@
 import type { Plaid } from "plaid";
 import type { Queryable } from "./db/types";
+import { AppError } from "./errors";
 
-/** SQL for Items, accounts, and transactions. All writes are idempotent upserts keyed on Plaid ids. */
+/**
+ * SQL for Items, accounts, and transactions. All writes are idempotent upserts
+ * keyed on Plaid ids. Every read of an Item is scoped to its owner; accounts
+ * and transactions inherit the owner of their Item.
+ */
 
 export type ItemStatus = "active" | "login_required" | "error";
 
 export interface ItemRow {
   id: string;
+  user_id: string;
   plaid_item_id: string;
   access_token_ciphertext: string;
   institution_id: string | null;
@@ -16,20 +22,22 @@ export interface ItemRow {
   transactions_cursor: string | null;
 }
 
-const ITEM_COLUMNS = `id, plaid_item_id, access_token_ciphertext, institution_id, institution_name,
+const ITEM_COLUMNS = `id, user_id, plaid_item_id, access_token_ciphertext, institution_id, institution_name,
   status, error_code, transactions_cursor`;
 
-export async function getItem(db: Queryable, id: string): Promise<ItemRow | null> {
+/** The Item with this id, only if `userId` owns it. */
+export async function getItem(db: Queryable, userId: string, id: string): Promise<ItemRow | null> {
   const { rows } = await db.query<ItemRow & Record<string, unknown>>(
-    `SELECT ${ITEM_COLUMNS} FROM plaid_items WHERE id = $1`,
-    [id],
+    `SELECT ${ITEM_COLUMNS} FROM plaid_items WHERE id = $1 AND user_id = $2`,
+    [id, userId],
   );
   return rows[0] ?? null;
 }
 
-export async function listItems(db: Queryable): Promise<ItemRow[]> {
+export async function listItems(db: Queryable, userId: string): Promise<ItemRow[]> {
   const { rows } = await db.query<ItemRow & Record<string, unknown>>(
-    `SELECT ${ITEM_COLUMNS} FROM plaid_items ORDER BY created_at`,
+    `SELECT ${ITEM_COLUMNS} FROM plaid_items WHERE user_id = $1 ORDER BY created_at`,
+    [userId],
   );
   return rows;
 }
@@ -37,6 +45,7 @@ export async function listItems(db: Queryable): Promise<ItemRow[]> {
 export async function insertItem(
   db: Queryable,
   item: {
+    userId: string;
     plaidItemId: string;
     accessTokenCiphertext: string;
     institutionId: string | null;
@@ -44,8 +53,8 @@ export async function insertItem(
   },
 ): Promise<string> {
   const { rows } = await db.query<{ id: string }>(
-    `INSERT INTO plaid_items (plaid_item_id, access_token_ciphertext, institution_id, institution_name)
-     VALUES ($1, $2, $3, $4)
+    `INSERT INTO plaid_items (user_id, plaid_item_id, access_token_ciphertext, institution_id, institution_name)
+     VALUES ($1, $2, $3, $4, $5)
      ON CONFLICT (plaid_item_id) DO UPDATE SET
        access_token_ciphertext = EXCLUDED.access_token_ciphertext,
        institution_id = EXCLUDED.institution_id,
@@ -53,9 +62,12 @@ export async function insertItem(
        status = 'active',
        error_code = NULL,
        updated_at = now()
+     WHERE plaid_items.user_id = EXCLUDED.user_id
      RETURNING id`,
-    [item.plaidItemId, item.accessTokenCiphertext, item.institutionId, item.institutionName],
+    [item.userId, item.plaidItemId, item.accessTokenCiphertext, item.institutionId, item.institutionName],
   );
+  // The same Plaid Item stored for a different user is never taken over.
+  if (rows.length === 0) throw new AppError(409, "item_conflict", "This Plaid item belongs to another user");
   return rows[0].id;
 }
 
@@ -92,12 +104,16 @@ export async function upsertAccounts(
            iso_currency_code = EXCLUDED.iso_currency_code,
            unofficial_currency_code = EXCLUDED.unofficial_currency_code,
            balances_updated_at = now(),
-           updated_at = now()`
+           updated_at = now()
+         WHERE accounts.item_id = EXCLUDED.item_id`
       : "DO NOTHING";
+    // The account takes its owner from the Item; an existing row is only
+    // updated when it already belongs to the same Item.
     await db.query(
-      `INSERT INTO accounts (item_id, plaid_account_id, name, official_name, mask, type, subtype,
+      `INSERT INTO accounts (item_id, user_id, plaid_account_id, name, official_name, mask, type, subtype,
          current_balance, available_balance, credit_limit, iso_currency_code, unofficial_currency_code)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+       SELECT i.id, i.user_id, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
+       FROM plaid_items i WHERE i.id = $1
        ON CONFLICT (plaid_account_id) ${conflict}`,
       [
         itemId,
@@ -131,10 +147,10 @@ export async function upsertTransactions(
 ): Promise<void> {
   for (const txn of transactions) {
     const { rows } = await db.query<{ id: string }>(
-      `INSERT INTO transactions (item_id, account_id, plaid_transaction_id, amount, iso_currency_code,
+      `INSERT INTO transactions (item_id, user_id, account_id, plaid_transaction_id, amount, iso_currency_code,
          unofficial_currency_code, date, authorized_date, name, merchant_name, category_primary,
          category_detailed, payment_channel, pending, pending_transaction_id)
-       SELECT $1, a.id, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
+       SELECT $1, a.user_id, a.id, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
        FROM accounts a WHERE a.plaid_account_id = $2 AND a.item_id = $1
        ON CONFLICT (plaid_transaction_id) DO UPDATE SET
          account_id = EXCLUDED.account_id,
@@ -151,6 +167,7 @@ export async function upsertTransactions(
          pending = EXCLUDED.pending,
          pending_transaction_id = EXCLUDED.pending_transaction_id,
          updated_at = now()
+       WHERE transactions.item_id = EXCLUDED.item_id
        RETURNING id`,
       [
         itemId,

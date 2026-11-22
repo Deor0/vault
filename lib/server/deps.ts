@@ -10,6 +10,3 @@ export interface Deps {
   /** Optional OAuth redirect URI passed to /link/token/create. */
   redirectUri?: string;
 }
-
-/** Stable id for the single local user; Plaid requires a client_user_id per Link session. */
-export const CLIENT_USER_ID = "vault-local-user";

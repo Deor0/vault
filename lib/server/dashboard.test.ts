@@ -1,14 +1,17 @@
 import { randomBytes } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createTestDb, type TestDb } from "@/tests/support/db";
+import { createTestUser } from "@/tests/support/users";
 import { ACCESS_TOKEN, createFakePlaid, makeSyncPage, makeTransaction } from "@/tests/support/plaid";
 import { getDashboard } from "./dashboard";
 import { exchangePublicToken } from "./exchange";
 
 let db: TestDb;
+let userId: string;
 
 beforeEach(async () => {
   db = await createTestDb();
+  userId = await createTestUser(db);
 });
 
 afterEach(async () => {
@@ -17,7 +20,7 @@ afterEach(async () => {
 
 describe("getDashboard", () => {
   it("is empty before anything is linked", async () => {
-    expect(await getDashboard(db)).toEqual({ items: [], transactions: [] });
+    expect(await getDashboard(db, userId)).toEqual({ items: [], transactions: [] });
   });
 
   it("lists Items with balances and recent transactions newest first, without secrets", async () => {
@@ -30,9 +33,9 @@ describe("getDashboard", () => {
         ],
       }),
     );
-    await exchangePublicToken({ db, plaid, encryptionKey: randomBytes(32) }, "public-token");
+    await exchangePublicToken({ db, plaid, encryptionKey: randomBytes(32) }, userId, "public-token");
 
-    const dashboard = await getDashboard(db);
+    const dashboard = await getDashboard(db, userId);
 
     expect(dashboard.items).toHaveLength(1);
     expect(dashboard.items[0]).toMatchObject({
@@ -56,7 +59,17 @@ describe("getDashboard", () => {
         added: Array.from({ length: 5 }, (_, i) => makeTransaction({ transaction_id: `t${i}` })),
       }),
     );
-    await exchangePublicToken({ db, plaid, encryptionKey: randomBytes(32) }, "public-token");
-    expect((await getDashboard(db, 3)).transactions).toHaveLength(3);
+    await exchangePublicToken({ db, plaid, encryptionKey: randomBytes(32) }, userId, "public-token");
+    expect((await getDashboard(db, userId, 3)).transactions).toHaveLength(3);
+  });
+
+  it("shows each user only their own Items, accounts, and transactions", async () => {
+    const plaid = createFakePlaid();
+    plaid.syncTransactions.mockResolvedValueOnce(makeSyncPage({ added: [makeTransaction()] }));
+    await exchangePublicToken({ db, plaid, encryptionKey: randomBytes(32) }, userId, "public-token");
+
+    const other = await createTestUser(db, "someone-else@example.com");
+    expect(await getDashboard(db, other)).toEqual({ items: [], transactions: [] });
+    expect((await getDashboard(db, userId)).transactions).toHaveLength(1);
   });
 });
