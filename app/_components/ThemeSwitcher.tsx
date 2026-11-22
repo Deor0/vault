@@ -3,7 +3,7 @@
 import { useSyncExternalStore } from "react";
 import { DEFAULT_THEME, isTheme, THEME_STORAGE_KEY, THEMES, type Theme } from "../_lib/theme";
 
-const LABELS: Record<Theme, string> = { dark: "Dark", light: "Light", system: "Match system" };
+const LABELS: Record<Theme, string> = { dark: "Dark", light: "Light" };
 
 function subscribe(onChange: () => void): () => void {
   const observer = new MutationObserver(onChange);
@@ -16,7 +16,7 @@ function currentTheme(): Theme {
   return isTheme(value) ? value : DEFAULT_THEME;
 }
 
-/** Dark (default), Light, or Match system. Saved in this browser and applied before paint on the next load. */
+/** Dark (default) or Light. Saved in this browser and applied before paint on the next load. */
 export function ThemeSwitcher() {
   // The server cannot know the saved choice, so nothing is checked until hydration.
   const theme = useSyncExternalStore(subscribe, currentTheme, () => null);

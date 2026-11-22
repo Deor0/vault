@@ -1,6 +1,6 @@
-/** Theme choice: dark by default, a light variant, or follow the system. Stored in the browser only. */
+/** Theme choice: dark by default, with a light variant. Stored in the browser only. */
 
-export const THEMES = ["dark", "light", "system"] as const;
+export const THEMES = ["dark", "light"] as const;
 export type Theme = (typeof THEMES)[number];
 
 export const DEFAULT_THEME: Theme = "dark";

@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createTestDb, type TestDb } from "@/tests/support/db";
 import { createTestUser } from "@/tests/support/users";
 import { ACCESS_TOKEN, createFakePlaid, makeSyncPage, makeTransaction } from "@/tests/support/plaid";
-import { getDashboard } from "./dashboard";
+import { getItemsWithAccounts, getRecentTransactions } from "./dashboard";
 import { exchangePublicToken } from "./exchange";
 
 let db: TestDb;
@@ -18,9 +18,10 @@ afterEach(async () => {
   await db.close();
 });
 
-describe("getDashboard", () => {
+describe("dashboard read models", () => {
   it("is empty before anything is linked", async () => {
-    expect(await getDashboard(db, userId)).toEqual({ items: [], transactions: [] });
+    expect(await getItemsWithAccounts(db, userId)).toEqual([]);
+    expect(await getRecentTransactions(db, userId)).toEqual([]);
   });
 
   it("lists Items with balances and recent transactions newest first, without secrets", async () => {
@@ -35,21 +36,23 @@ describe("getDashboard", () => {
     );
     await exchangePublicToken({ db, plaid, encryptionKey: randomBytes(32) }, userId, "public-token");
 
-    const dashboard = await getDashboard(db, userId);
+    const items = await getItemsWithAccounts(db, userId);
+    const transactions = await getRecentTransactions(db, userId);
 
-    expect(dashboard.items).toHaveLength(1);
-    expect(dashboard.items[0]).toMatchObject({
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({
       institutionName: "First Platypus Bank",
       status: "active",
       accounts: [{ name: "Plaid Checking", mask: "0000", currentBalance: 110, availableBalance: 100, currency: "USD" }],
     });
-    expect(dashboard.items[0].lastSyncedAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
-    expect(dashboard.transactions.map((t) => [t.date, t.name, t.amount])).toEqual([
+    expect(items[0].lastSyncedAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
+    expect(transactions.map((t) => [t.date, t.name, t.amount])).toEqual([
       ["2026-11-02", "Payroll", -1000],
       ["2026-10-01", "Coffee Shop", 5],
     ]);
-    expect(JSON.stringify(dashboard)).not.toContain(ACCESS_TOKEN);
-    expect(JSON.stringify(dashboard)).not.toContain("v1:");
+    const serialized = JSON.stringify({ items, transactions });
+    expect(serialized).not.toContain(ACCESS_TOKEN);
+    expect(serialized).not.toContain("v1:");
   });
 
   it("limits the number of transactions", async () => {
@@ -60,7 +63,7 @@ describe("getDashboard", () => {
       }),
     );
     await exchangePublicToken({ db, plaid, encryptionKey: randomBytes(32) }, userId, "public-token");
-    expect((await getDashboard(db, userId, 3)).transactions).toHaveLength(3);
+    expect(await getRecentTransactions(db, userId, 3)).toHaveLength(3);
   });
 
   it("shows each user only their own Items, accounts, and transactions", async () => {
@@ -69,7 +72,9 @@ describe("getDashboard", () => {
     await exchangePublicToken({ db, plaid, encryptionKey: randomBytes(32) }, userId, "public-token");
 
     const other = await createTestUser(db, "someone-else@example.com");
-    expect(await getDashboard(db, other)).toEqual({ items: [], transactions: [] });
-    expect((await getDashboard(db, userId)).transactions).toHaveLength(1);
+    expect(await getItemsWithAccounts(db, other)).toEqual([]);
+    expect(await getRecentTransactions(db, other)).toEqual([]);
+    expect(await getItemsWithAccounts(db, userId)).toHaveLength(1);
+    expect(await getRecentTransactions(db, userId)).toHaveLength(1);
   });
 });

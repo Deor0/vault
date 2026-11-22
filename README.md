@@ -112,8 +112,8 @@ No code changes are needed. Keep these Trial plan limits in mind:
     status, last sync time, **Reconnect**, type, and current, available, and limit balances.
   - **Transactions** (`/transactions`): the latest 250 transactions. A table on wide screens;
     on phones, two-line rows grouped by day.
-  - **Settings** (`/settings`): theme (dark by default, light, or match the system; saved
-    in the browser), the signed-in account with **Sign out**, and instance details.
+  - **Settings** (`/settings`): theme (dark by default, or light; saved in the browser), the signed-in
+    account with **Sign out**, and instance details.
 - **Link account**: opens Plaid Link. The server creates the `link_token`, then exchanges the
   resulting `public_token` for an access token and stores it encrypted. Vault then fetches
   accounts and balances (`/accounts/get`) and whatever transactions Plaid already has

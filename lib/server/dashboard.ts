@@ -38,11 +38,6 @@ export interface DashboardTransaction {
   accountMask: string | null;
 }
 
-export interface Dashboard {
-  items: DashboardItem[];
-  transactions: DashboardTransaction[];
-}
-
 export const RECENT_TRANSACTIONS_LIMIT = 50;
 
 /** The user's linked Items (institutions), each with its accounts and balances. */
@@ -149,15 +144,4 @@ export async function getRecentTransactions(
     accountName: txn.account_name,
     accountMask: txn.account_mask,
   }));
-}
-
-export async function getDashboard(
-  db: Queryable,
-  userId: string,
-  limit = RECENT_TRANSACTIONS_LIMIT,
-): Promise<Dashboard> {
-  return {
-    items: await getItemsWithAccounts(db, userId),
-    transactions: await getRecentTransactions(db, userId, limit),
-  };
 }

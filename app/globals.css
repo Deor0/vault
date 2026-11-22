@@ -1,7 +1,7 @@
 /*
  * Vault "Console" theme: an operator-console look. IBM Plex Sans for the
  * interface, IBM Plex Mono (tabular numerals) for every number.
- * Dark is the default; [data-theme="light"] or "system" switch it.
+ * Dark is the default; [data-theme="light"] switches it.
  */
 
 :root,
@@ -49,31 +49,6 @@
   --grid: rgba(17, 20, 24, 0.05);
   --shadow: 0 12px 32px rgba(17, 20, 24, 0.08);
   color-scheme: light;
-}
-
-@media (prefers-color-scheme: light) {
-  [data-theme="system"] {
-    --bg: #f4f5f7;
-    --surface: #ffffff;
-    --surface-2: #f8f9fb;
-    --ink: #111418;
-    --muted: #5b636e;
-    --faint: #8a919b;
-    --line: #e3e6ea;
-    --line-strong: #d0d5dc;
-    --accent: #2457c5;
-    --accent-ink: #ffffff;
-    --accent-soft: rgba(36, 87, 197, 0.08);
-    --positive: #1a7f52;
-    --positive-soft: rgba(26, 127, 82, 0.1);
-    --negative: #c4314b;
-    --negative-soft: rgba(196, 49, 75, 0.08);
-    --warn: #8a5a00;
-    --warn-soft: rgba(230, 160, 30, 0.14);
-    --grid: rgba(17, 20, 24, 0.05);
-    --shadow: 0 12px 32px rgba(17, 20, 24, 0.08);
-    color-scheme: light;
-  }
 }
 
 :root {
