@@ -60,3 +60,17 @@ export function readDatabaseUrl(env: Record<string, string | undefined> = proces
   }
   return url;
 }
+
+/**
+ * The Auth.js session secret. `AUTH_SECRET` (the name Auth.js reads by itself)
+ * wins when set; otherwise `BETTER_AUTH_SECRET` is used. Blank values count as
+ * unset. Returns undefined when neither is set, so Auth.js reports its own
+ * MissingSecret error.
+ */
+export function readAuthSecret(env: Record<string, string | undefined> = process.env): string | undefined {
+  for (const name of ["AUTH_SECRET", "BETTER_AUTH_SECRET"] as const) {
+    const value = env[name];
+    if (value !== undefined && value.trim() !== "") return value;
+  }
+  return undefined;
+}

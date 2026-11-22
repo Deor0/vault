@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { plaidBaseUrl } from "./plaid/client";
-import { ConfigError, readDatabaseUrl, readPlaidConfig } from "./env";
+import { ConfigError, readAuthSecret, readDatabaseUrl, readPlaidConfig } from "./env";
 
 describe("readPlaidConfig", () => {
   it("defaults PLAID_ENV to sandbox", () => {
@@ -44,5 +44,21 @@ describe("readDatabaseUrl", () => {
     expect(readDatabaseUrl({ DATABASE_URL: "postgres://vault:vault@localhost:5432/vault" })).toBe(
       "postgres://vault:vault@localhost:5432/vault",
     );
+  });
+});
+
+describe("readAuthSecret", () => {
+  it("uses BETTER_AUTH_SECRET when AUTH_SECRET is unset or blank", () => {
+    expect(readAuthSecret({ BETTER_AUTH_SECRET: "better" })).toBe("better");
+    expect(readAuthSecret({ AUTH_SECRET: " ", BETTER_AUTH_SECRET: "better" })).toBe("better");
+  });
+
+  it("prefers AUTH_SECRET when both are set", () => {
+    expect(readAuthSecret({ AUTH_SECRET: "auth", BETTER_AUTH_SECRET: "better" })).toBe("auth");
+  });
+
+  it("returns undefined when neither is set", () => {
+    expect(readAuthSecret({})).toBeUndefined();
+    expect(readAuthSecret({ AUTH_SECRET: "", BETTER_AUTH_SECRET: "" })).toBeUndefined();
   });
 });

@@ -46,7 +46,7 @@ window or choose to continue without one.
 | `PLAID_SECRET` | The Plaid secret **for the environment in `PLAID_ENV`** (Sandbox and Production use different secrets) |
 | `PLAID_ENV` | `sandbox` (default) or `production` |
 | `DATABASE_URL` | `postgres://vault:vault@localhost:5432/vault` for the Docker Compose database |
-| `AUTH_SECRET` | 32 random bytes, base64-encoded. Auth.js uses it to encrypt the session cookie. Generate one with `openssl rand -base64 32` (or `npm run gen:key`). Changing it signs everyone out |
+| `BETTER_AUTH_SECRET` | 32 random bytes, base64-encoded. Auth.js uses it to encrypt the session cookie. Generate one with `openssl rand -base64 32` (or `npm run gen:key`). Changing it signs everyone out. `AUTH_SECRET` (the Auth.js default name) is accepted as an alias and wins if both are set |
 | `AUTH_TRUST_HOST` | `true` (as in `.env.example`) so Auth.js accepts `127.0.0.1` under `npm start`. `npm run dev` does not need it |
 | `TOKEN_ENCRYPTION_KEY` | 32 random bytes, base64-encoded. It encrypts Plaid access tokens at rest. Generate one with `openssl rand -base64 32` (or `npm run gen:key`) |
 | `PLAID_REDIRECT_URI` | Optional. Only needed for redirect-based OAuth. Web Link opens OAuth banks in a popup without it |
@@ -112,7 +112,7 @@ as positive. Plaid itself reports outflows as positive numbers.
 ### Troubleshooting
 
 - **Every page answers "There was a problem with the server configuration"**: Auth.js
-  is missing a setting. Check that `AUTH_SECRET` is set in `.env`, and under `npm start`
+  is missing a setting. Check that `BETTER_AUTH_SECRET` (or `AUTH_SECRET`) is set in `.env`, and under `npm start`
   also `AUTH_TRUST_HOST=true`. The server log names the exact problem.
 - **The page says Vault is not ready yet**: follow the message. It usually means Postgres is
   not running (`docker compose up -d db`), the schema is missing (`npm run db:migrate`), or a
@@ -133,7 +133,7 @@ as positive. Plaid itself reports outflows as positive numbers.
 | `npm test` | Run the test suite (Plaid mocked, in-process Postgres) |
 | `npm run lint` | ESLint |
 | `npm run typecheck` | TypeScript, no emit |
-| `npm run gen:key` | Print a new random key (for `TOKEN_ENCRYPTION_KEY` or `AUTH_SECRET`) |
+| `npm run gen:key` | Print a new random key (for `TOKEN_ENCRYPTION_KEY` or `BETTER_AUTH_SECRET`) |
 
 ## How it fits together
 
