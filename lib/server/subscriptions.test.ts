@@ -183,7 +183,7 @@ describe("getSubscriptions", () => {
     const icloud = (await getSubscriptions(db, userId, TODAY)).active[0];
     expect(icloud.key).toBe("n:apple");
     await saveOverride(db, userId, { streamKey: icloud.key, status: "ignored" });
-    await db.query("UPDATE subscription_overrides SET created_at = '2026-04-01' WHERE stream_key = 'n:apple'");
+    await db.query("UPDATE subscription_overrides SET created_at = '2026-04-01', updated_at = '2026-04-01' WHERE stream_key = 'n:apple'");
 
     plaid.syncTransactions.mockResolvedValueOnce(
       makeSyncPage({ added: monthly("2026-08", 4, 14).map((date) => charge(date, 19.95, "Apple")), next_cursor: "c2" }),
@@ -226,7 +226,7 @@ describe("getSubscriptions", () => {
     const tv = monthly("2026-08", 26, 14).map((date) => charge(date, 19.95, "Apple"));
     const plaid = await link(userId, icloud.slice(0, 7));
     await saveOverride(db, userId, { streamKey: "n:apple", displayName: "iCloud+", status: "ignored" });
-    await db.query("UPDATE subscription_overrides SET created_at = '2026-01-15' WHERE stream_key = 'n:apple'");
+    await db.query("UPDATE subscription_overrides SET created_at = '2026-01-15', updated_at = '2026-01-15' WHERE stream_key = 'n:apple'");
 
     plaid.syncTransactions.mockResolvedValueOnce(
       makeSyncPage({ added: [...icloud.slice(7, 9), ...tv.slice(0, 2)], next_cursor: "c2" }),
@@ -270,7 +270,7 @@ describe("getSubscriptions", () => {
     const tv = monthly("2026-01", 6, 14).map((date) => charge(date, 19.95, "Apple"));
     const plaid = await link(userId, [...icloud.slice(0, 6), ...tv]);
     await saveOverride(db, userId, { streamKey: "n:apple", displayName: "Apple stuff" });
-    await db.query("UPDATE subscription_overrides SET created_at = '2026-02-01' WHERE stream_key = 'n:apple'");
+    await db.query("UPDATE subscription_overrides SET created_at = '2026-02-01', updated_at = '2026-02-01' WHERE stream_key = 'n:apple'");
 
     let data = await getSubscriptions(db, userId, "2026-07-01");
     const split = [...data.active, ...data.inactive].find((sub) => sub.key === "n:apple@3")!;
@@ -286,6 +286,33 @@ describe("getSubscriptions", () => {
     data = await getSubscriptions(db, userId, "2028-05-20");
     expect(data.ignored.map((sub) => [sub.key, sub.name, sub.status, sub.kind])).toEqual([
       ["n:apple", "iCloud+", "ignored", "bill"],
+    ]);
+  });
+
+  it("keeps an edit made while merged when the merchant splits into plans again", async () => {
+    const icloud = monthly("2026-01", 34, 5).map((date) => charge(date, 2.99, "Apple"));
+    const tv = monthly("2026-01", 6, 14).map((date) => charge(date, 19.95, "Apple"));
+    const tvAgain = monthly("2028-06", 5, 14).map((date) => charge(date, 19.95, "Apple"));
+    const at = (key: string, when: string) =>
+      db.query("UPDATE subscription_overrides SET created_at = $2, updated_at = $2 WHERE stream_key = $1", [key, when]);
+    const plaid = await link(userId, [...icloud.slice(0, 6), ...tv]);
+    await getSubscriptions(db, userId, "2026-07-01");
+    await saveOverride(db, userId, { streamKey: "n:apple@3", displayName: "iCloud+", status: "ignored" });
+    await at("n:apple@3", "2026-07-02");
+
+    plaid.syncTransactions.mockResolvedValueOnce(makeSyncPage({ added: icloud.slice(6, 29), next_cursor: "c2" }));
+    await syncAllItems({ db, plaid, encryptionKey }, userId);
+    expect((await getSubscriptions(db, userId, "2028-05-20")).ignored.map((sub) => sub.key)).toEqual(["n:apple"]);
+    await saveOverride(db, userId, { streamKey: "n:apple", status: "confirmed" });
+    await at("n:apple", "2028-05-21");
+
+    plaid.syncTransactions.mockResolvedValueOnce(makeSyncPage({ added: [...icloud.slice(29), ...tvAgain], next_cursor: "c3" }));
+    await syncAllItems({ db, plaid, encryptionKey }, userId);
+    const data = await getSubscriptions(db, userId, "2028-11-01");
+    expect(data.ignored).toEqual([]);
+    expect(data.active.map((sub) => [sub.key, sub.name, sub.status]).sort()).toEqual([
+      ["n:apple@20", "Apple", "detected"],
+      ["n:apple@3", "iCloud+", "confirmed"],
     ]);
   });
 

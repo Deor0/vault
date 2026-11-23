@@ -20,8 +20,6 @@ export interface SubscriptionOverride {
 }
 
 interface StoredOverride extends SubscriptionOverride {
-  /** The day the decision was first saved. */
-  createdOn: string;
   /** When the decision was last changed, in epoch seconds. */
   updatedAt: number;
 }
@@ -148,10 +146,9 @@ export async function getOverrides(db: Queryable, userId: string): Promise<Store
     kind: SubscriptionKind | null;
     display_name: string | null;
     cancelled_at: string | null;
-    created_on: string;
     updated_at: number;
   }>(
-    `SELECT stream_key, status, kind, display_name, cancelled_at::text AS cancelled_at, created_at::date::text AS created_on,
+    `SELECT stream_key, status, kind, display_name, cancelled_at::text AS cancelled_at,
        extract(epoch FROM updated_at)::float8 AS updated_at
      FROM subscription_overrides WHERE user_id = $1`,
     [userId],
@@ -162,7 +159,6 @@ export async function getOverrides(db: Queryable, userId: string): Promise<Store
     kind: row.kind,
     displayName: row.display_name,
     cancelledAt: row.cancelled_at,
-    createdOn: row.created_on,
     updatedAt: row.updated_at,
   }));
 }
@@ -256,7 +252,8 @@ export async function getSubscriptions(
          display_name = EXCLUDED.display_name,
          cancelled_at = EXCLUDED.cancelled_at,
          created_at = EXCLUDED.created_at,
-         updated_at = EXCLUDED.updated_at`,
+         updated_at = EXCLUDED.updated_at
+       WHERE subscription_overrides.updated_at < EXCLUDED.updated_at`,
       [userId, fromKey, streamKey],
     );
   }
@@ -304,12 +301,14 @@ function buildSubscriptions(
   for (const stream of detectRecurring(inputs, today)) {
     const own = [stream.key, ...stream.aliasKeys].map((key) => byKey.get(key)).find(Boolean);
     const band = stream.bandKeys.map((key) => byKey.get(key)).find(Boolean);
+    const parent = stream.parentKeys
+      .map((key) => byKey.get(key))
+      .find((row) => row !== undefined && stream.firstDate <= dayOf(row.updatedAt));
     const override =
-      (band && (!own || band.updatedAt > own.updatedAt) ? band : own) ??
-      stream.parentKeys
-        .map((key) => byKey.get(key))
-        .find((parent) => parent !== undefined && stream.firstDate <= parent.createdOn) ??
-      null;
+      [own, band, parent].reduce<StoredOverride | undefined>(
+        (best, row) => (row && (!best || row.updatedAt > best.updatedAt) ? row : best),
+        undefined,
+      ) ?? null;
     if (override && override.streamKey !== stream.key) inherited.push([stream.key, override.streamKey]);
     const account = accounts.get(stream.accountId);
     const charges: SubscriptionCharge[] = stream.charges
@@ -400,6 +399,10 @@ export function summarize(active: Subscription[], today: string): SubscriptionTo
     newCount: active.filter((sub) => sub.needsReview).length,
     otherCurrency: active.length - inCurrency.length,
   };
+}
+
+function dayOf(epochSeconds: number): string {
+  return new Date(epochSeconds * 1000).toISOString().slice(0, 10);
 }
 
 function round2(value: number): number {
