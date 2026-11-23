@@ -1,8 +1,11 @@
 import { Pool, type PoolConfig } from "pg";
 import type { Db, Queryable, Row } from "./types";
 
-/** Wrap a node-postgres Pool in the app's `Db` interface. */
-export function createPgDb(config: PoolConfig): Db & { end(): Promise<void> } {
+/**
+ * Wrap a node-postgres Pool in the app's `Db` interface. The underlying `pool`
+ * is exposed so the app can hand it to Vercel's `attachDatabasePool`.
+ */
+export function createPgDb(config: PoolConfig): Db & { pool: Pool; end(): Promise<void> } {
   // A connect timeout keeps requests from waiting indefinitely on an unreachable host.
   const pool = new Pool({ max: 5, connectionTimeoutMillis: 5000, ...config });
 
@@ -33,6 +36,7 @@ export function createPgDb(config: PoolConfig): Db & { end(): Promise<void> } {
         client.release();
       }
     },
+    pool,
     end: () => pool.end(),
   };
 }

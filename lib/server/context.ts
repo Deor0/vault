@@ -1,4 +1,5 @@
 import "server-only";
+import { attachDatabasePool } from "@vercel/functions";
 import { parseEncryptionKey } from "./crypto";
 import { createPgDb } from "./db/pg";
 import type { Db } from "./db/types";
@@ -14,7 +15,11 @@ const globalCache = globalThis as unknown as { __vaultDb?: Db };
 
 export function getDb(): Db {
   if (!globalCache.__vaultDb) {
-    globalCache.__vaultDb = createPgDb({ connectionString: readDatabaseUrl() });
+    const db = createPgDb({ connectionString: readDatabaseUrl() });
+    // On Vercel Fluid compute, close idle pool clients before the function
+    // suspends so connections do not leak. A no-op outside Vercel.
+    attachDatabasePool(db.pool);
+    globalCache.__vaultDb = db;
   }
   return globalCache.__vaultDb;
 }
