@@ -25,6 +25,9 @@ describe("setupMessage", () => {
     expect(setupMessage(Object.assign(new Error("relation does not exist"), { code: "42P01" }))).toMatch(
       /npm run db:migrate/,
     );
+    expect(setupMessage(Object.assign(new Error("column does not exist"), { code: "42703" }))).toBe(
+      "The database schema is out of date. Run `npm run db:migrate`.",
+    );
     expect(setupMessage(Object.assign(new Error("connect ECONNREFUSED"), { code: "ECONNREFUSED" }))).toMatch(
       /docker compose up -d db/,
     );

@@ -74,3 +74,43 @@ export function groupByDay<T extends { date: string }>(rows: T[]): { date: strin
 export function formatAccountType(type: string, subtype: string | null): string {
   return [type, subtype].filter(Boolean).join(" · ");
 }
+
+const CADENCE_LABELS: Record<string, string> = {
+  weekly: "Weekly",
+  biweekly: "Every 2 weeks",
+  semi_monthly: "Twice a month",
+  monthly: "Monthly",
+  quarterly: "Quarterly",
+  annual: "Yearly",
+};
+
+/** "Monthly", "Every 2 weeks", … for a detected cadence. */
+export function formatCadence(cadence: string): string {
+  return CADENCE_LABELS[cadence] ?? cadence;
+}
+
+/** Whole days from `today` to `date` (both `YYYY-MM-DD`). */
+export function daysBetween(today: string, date: string): number {
+  return Math.round((Date.parse(`${date}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / 86_400_000);
+}
+
+/** "today", "tomorrow", "in 12 days", "3 days ago" for a calendar day relative to `today`. */
+export function formatRelativeDay(date: string, today: string): string {
+  const days = daysBetween(today, date);
+  if (days === 0) return "today";
+  if (days === 1) return "tomorrow";
+  if (days === -1) return "yesterday";
+  return days > 0 ? `in ${days} days` : `${-days} days ago`;
+}
+
+/** "Dec 21, 2026" for a Plaid `YYYY-MM-DD` date. */
+export function formatShortDate(date: string): string {
+  const [year, month, day] = date.split("-").map(Number);
+  if (!year || !month || !day) return date;
+  return new Date(Date.UTC(year, month - 1, day)).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}

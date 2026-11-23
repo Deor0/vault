@@ -26,6 +26,7 @@ const { POST: linkTokenPOST } = await import("./plaid/link-token/route");
 const { POST: exchangePOST } = await import("./plaid/exchange/route");
 const { POST: updateCompletePOST } = await import("./plaid/update-complete/route");
 const { POST: syncPOST } = await import("./sync/route");
+const { POST: overridePOST } = await import("./subscriptions/override/route");
 
 let db: TestDb;
 let plaid: FakePlaid;
@@ -143,12 +144,85 @@ describe("POST /api/plaid/update-complete and /api/sync", () => {
   });
 });
 
+describe("POST /api/subscriptions/override", () => {
+  async function overrides() {
+    const { rows } = await db.query(
+      "SELECT user_id, stream_key, status, kind, display_name, cancelled_at::text AS cancelled_at FROM subscription_overrides",
+    );
+    return rows;
+  }
+
+  it("records a decision for the signed-in user without touching Plaid", async () => {
+    const response = await overridePOST(
+      jsonRequest("/api/subscriptions/override", { streamKey: "n:netflix", status: "cancelled", cancelledAt: "2026-11-20" }),
+    );
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      override: { streamKey: "n:netflix", status: "cancelled", kind: null, displayName: null, cancelledAt: "2026-11-20" },
+    });
+
+    const renamed = await overridePOST(
+      jsonRequest("/api/subscriptions/override", { streamKey: "n:netflix", displayName: "Netflix Premium", kind: "bill" }),
+    );
+    expect((await renamed.json()).override).toMatchObject({ status: "cancelled", cancelledAt: "2026-11-20", kind: "bill" });
+    expect(await overrides()).toEqual([
+      {
+        user_id: userId,
+        stream_key: "n:netflix",
+        status: "cancelled",
+        kind: "bill",
+        display_name: "Netflix Premium",
+        cancelled_at: "2026-11-20",
+      },
+    ]);
+    for (const method of Object.values(plaid)) expect(method).not.toHaveBeenCalled();
+  });
+
+  it("dates a cancellation today when no date is given, and clears it on undo", async () => {
+    const today = new Date().toISOString().slice(0, 10);
+    await overridePOST(jsonRequest("/api/subscriptions/override", { streamKey: "e:ent-1", status: "cancelled" }));
+    expect((await overrides())[0]).toMatchObject({ status: "cancelled", cancelled_at: today });
+    await overridePOST(jsonRequest("/api/subscriptions/override", { streamKey: "e:ent-1", status: "confirmed" }));
+    expect((await overrides())[0]).toMatchObject({ status: "confirmed", cancelled_at: null });
+  });
+
+  it.each([
+    [{}, "streamKey is required"],
+    [{ streamKey: "  " }, "streamKey is required"],
+    [{ streamKey: "k", status: "paused" }, ""],
+    [{ streamKey: "k", kind: "gift" }, ""],
+    [{ streamKey: "k", displayName: "x".repeat(81) }, "Name is too long"],
+    [{ streamKey: "k", status: "cancelled", cancelledAt: "next week" }, "cancelledAt must be a date"],
+    [{ streamKey: "k", status: "ignored", cancelledAt: "2026-11-20" }, "cancelledAt is only allowed"],
+  ])("rejects %j", async (body, message) => {
+    const response = await overridePOST(jsonRequest("/api/subscriptions/override", body));
+    expect(response.status).toBe(400);
+    expect((await response.json()).error.message).toContain(message);
+    expect(await overrides()).toEqual([]);
+  });
+
+  it("rejects cross-origin requests", async () => {
+    const response = await overridePOST(
+      jsonRequest("/api/subscriptions/override", { streamKey: "k", status: "ignored" }, { origin: "https://evil.example" }),
+    );
+    expect(response.status).toBe(403);
+    expect(await overrides()).toEqual([]);
+  });
+
+  it("works without Plaid keys configured", async () => {
+    state.configError = new ConfigError("Plaid is not configured: PLAID_SECRET is not set.");
+    const response = await overridePOST(jsonRequest("/api/subscriptions/override", { streamKey: "k", status: "ignored" }));
+    expect(response.status).toBe(200);
+  });
+});
+
 describe("session gating", () => {
   const routes = [
     ["/api/plaid/link-token", () => linkTokenPOST, {}],
     ["/api/plaid/exchange", () => exchangePOST, { publicToken: "public-sandbox-token" }],
     ["/api/plaid/update-complete", () => updateCompletePOST, { itemId: "00000000-0000-0000-0000-000000000000" }],
     ["/api/sync", () => syncPOST, {}],
+    ["/api/subscriptions/override", () => overridePOST, { streamKey: "n:netflix", status: "ignored" }],
   ] as const;
 
   it.each(routes)("%s answers 401 without a session and never calls Plaid", async (path, handler, body) => {
@@ -157,6 +231,7 @@ describe("session gating", () => {
     expect(response.status).toBe(401);
     expect(await response.json()).toEqual({ error: { code: "unauthorized", message: "Sign in to continue" } });
     for (const method of Object.values(plaid)) expect(method).not.toHaveBeenCalled();
+    expect((await db.query("SELECT 1 FROM subscription_overrides")).rows).toEqual([]);
   });
 
   it("keeps each user's Items to themselves", async () => {

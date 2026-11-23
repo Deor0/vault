@@ -1,0 +1,499 @@
+{
+  "note": "Where to cancel common US subscriptions. Hand-curated and best effort: services move these pages, and the merchant's own page is authoritative. Platforms (Apple, Google, PayPal, Amazon) bill for other services; a charge through one is cancelled there. `match` lists words that appear in bank descriptors (lower case; '+' reads as 'plus', other punctuation as a space).",
+  "entries": [
+    {
+      "id": "apple",
+      "name": "Apple",
+      "kind": "platform",
+      "match": ["apple com bill", "apple com", "itunes", "apple"],
+      "url": "https://apps.apple.com/account/subscriptions",
+      "steps": [
+        "Apple bills for iCloud+, Apple One, Apple Music, Apple TV+, and every subscription bought in an iPhone or iPad app.",
+        "On an iPhone: Settings → your name → Subscriptions, then pick the subscription and tap Cancel Subscription.",
+        "On the web: sign in at the link above with your Apple Account and choose Cancel next to the subscription."
+      ],
+      "channels": ["web", "app"]
+    },
+    {
+      "id": "google",
+      "name": "Google",
+      "kind": "platform",
+      "match": ["google", "google play", "youtubepremium", "google one"],
+      "url": "https://myaccount.google.com/payments-and-subscriptions",
+      "links": [{ "label": "Google Play subscriptions", "url": "https://play.google.com/store/account/subscriptions" }],
+      "steps": [
+        "Google bills for Google One, YouTube Premium, Google Play apps, and other Google services.",
+        "Open Payments & subscriptions, choose Manage subscriptions, pick the subscription, and cancel it.",
+        "Subscriptions bought in an Android app are under Google Play subscriptions."
+      ],
+      "channels": ["web", "app"]
+    },
+    {
+      "id": "paypal",
+      "name": "PayPal",
+      "kind": "platform",
+      "match": ["paypal"],
+      "url": "https://www.paypal.com/myaccount/autopay/",
+      "steps": [
+        "A charge through PayPal is an automatic payment you approved for a merchant.",
+        "Open Automatic payments, choose the merchant, and select Cancel. This stops PayPal paying them; cancel with the merchant too if you have an account there."
+      ],
+      "channels": ["web", "app"]
+    },
+    {
+      "id": "amazon",
+      "name": "Amazon",
+      "kind": "platform",
+      "match": ["amazon prime", "amzn prime", "prime video", "amazon digital", "amzn digital", "amazon channels", "kindle unlimited", "kindle svcs", "amazon music"],
+      "url": "https://www.amazon.com/yourmembershipsandsubscriptions",
+      "links": [{ "label": "Prime membership", "url": "https://www.amazon.com/gp/primecentral" }],
+      "steps": [
+        "Amazon bills for Prime, Prime Video channels, Kindle Unlimited, Amazon Music, and other subscriptions.",
+        "Open Memberships & Subscriptions and choose Cancel subscription next to the one you want to stop.",
+        "For Prime itself, open the Prime membership page and choose End membership."
+      ],
+      "channels": ["web", "app"]
+    },
+    {
+      "id": "netflix",
+      "name": "Netflix",
+      "kind": "merchant",
+      "match": ["netflix"],
+      "url": "https://www.netflix.com/cancelplan",
+      "steps": ["Sign in to the Netflix account that is billed.", "Choose Cancel Membership, then Finish Cancellation."],
+      "channels": ["web", "app"]
+    },
+    {
+      "id": "spotify",
+      "name": "Spotify",
+      "kind": "merchant",
+      "match": ["spotify"],
+      "url": "https://www.spotify.com/account/subscription/",
+      "steps": ["Sign in, open Manage your plan, and choose Cancel subscription."],
+      "channels": ["web"]
+    },
+    {
+      "id": "hulu",
+      "name": "Hulu",
+      "kind": "merchant",
+      "match": ["hulu"],
+      "url": "https://secure.hulu.com/account",
+      "steps": ["Sign in to your Hulu account page and choose Cancel under Your Subscription."],
+      "channels": ["web"]
+    },
+    {
+      "id": "disney-plus",
+      "name": "Disney+",
+      "kind": "merchant",
+      "match": ["disney plus", "disneyplus"],
+      "url": "https://www.disneyplus.com/account",
+      "steps": ["Sign in, open Account, choose your subscription, and select Cancel Subscription."],
+      "channels": ["web"]
+    },
+    {
+      "id": "hbo-max",
+      "name": "HBO Max",
+      "kind": "merchant",
+      "match": ["hbo max", "hbomax", "max com", "hbo"],
+      "url": "https://www.hbomax.com/",
+      "steps": ["Sign in, open your profile → Settings → Subscription, and choose Cancel Your Subscription."],
+      "channels": ["web"]
+    },
+    {
+      "id": "paramount-plus",
+      "name": "Paramount+",
+      "kind": "merchant",
+      "match": ["paramount plus", "paramountplus", "paramount"],
+      "url": "https://www.paramountplus.com/account/",
+      "steps": ["Sign in, open Account, and choose Cancel Subscription."],
+      "channels": ["web"]
+    },
+    {
+      "id": "peacock",
+      "name": "Peacock",
+      "kind": "merchant",
+      "match": ["peacock", "peacocktv"],
+      "url": "https://www.peacocktv.com/account",
+      "steps": ["Sign in, open Account → Plans & Payment, and choose Change Plan → Cancel Plan."],
+      "channels": ["web"]
+    },
+    {
+      "id": "youtube",
+      "name": "YouTube Premium / YouTube TV",
+      "kind": "merchant",
+      "match": ["youtube", "youtubepremium", "youtube tv"],
+      "url": "https://www.youtube.com/paid_memberships",
+      "steps": ["Open Paid memberships, choose the membership, and select Deactivate or Cancel membership."],
+      "channels": ["web", "app"]
+    },
+    {
+      "id": "audible",
+      "name": "Audible",
+      "kind": "merchant",
+      "match": ["audible"],
+      "url": "https://www.audible.com/account",
+      "steps": ["Sign in on the Audible website (the app cannot cancel), open Account Details, and choose Cancel membership."],
+      "channels": ["web"]
+    },
+    {
+      "id": "microsoft",
+      "name": "Microsoft (365, Xbox Game Pass)",
+      "kind": "merchant",
+      "match": ["microsoft", "msbill", "xbox"],
+      "url": "https://account.microsoft.com/services",
+      "steps": ["Sign in, open Subscriptions, choose Manage on the subscription, and select Cancel subscription."],
+      "channels": ["web"]
+    },
+    {
+      "id": "adobe",
+      "name": "Adobe",
+      "kind": "merchant",
+      "match": ["adobe"],
+      "url": "https://account.adobe.com/plans",
+      "steps": [
+        "Sign in, open Plans, choose Manage plan, and select Cancel your plan.",
+        "Annual plans paid monthly can carry an early termination fee; Adobe shows it before you confirm."
+      ],
+      "channels": ["web", "chat"]
+    },
+    {
+      "id": "dropbox",
+      "name": "Dropbox",
+      "kind": "merchant",
+      "match": ["dropbox"],
+      "url": "https://www.dropbox.com/account/plan",
+      "steps": ["Sign in on the Dropbox website, open Settings → Plan, and choose Cancel plan."],
+      "channels": ["web"]
+    },
+    {
+      "id": "openai",
+      "name": "ChatGPT (OpenAI)",
+      "kind": "merchant",
+      "match": ["openai", "chatgpt"],
+      "url": "https://chatgpt.com/",
+      "steps": ["Sign in, open your profile → Settings → Account, choose Manage next to your plan, and select Cancel plan."],
+      "channels": ["web"]
+    },
+    {
+      "id": "anthropic",
+      "name": "Claude (Anthropic)",
+      "kind": "merchant",
+      "match": ["anthropic", "claude ai", "claude"],
+      "url": "https://claude.ai/settings/billing",
+      "steps": ["Sign in, open Settings → Billing, and choose Cancel next to your plan."],
+      "channels": ["web"]
+    },
+    {
+      "id": "github",
+      "name": "GitHub",
+      "kind": "merchant",
+      "match": ["github"],
+      "url": "https://github.com/settings/billing/summary",
+      "steps": ["Sign in, open Settings → Billing and licensing, and downgrade or cancel the plan or Copilot subscription."],
+      "channels": ["web"]
+    },
+    {
+      "id": "planet-fitness",
+      "name": "Planet Fitness",
+      "kind": "merchant",
+      "match": ["planet fitness", "pf club"],
+      "url": "https://www.planetfitness.com/",
+      "steps": [
+        "Many clubs cancel only in person at your home club or by a signed letter mailed to it; your membership agreement says which.",
+        "Some clubs allow cancelling online from the account page. Keep the confirmation."
+      ],
+      "channels": ["in_person", "mail", "web"]
+    },
+    {
+      "id": "peloton",
+      "name": "Peloton",
+      "kind": "merchant",
+      "match": ["peloton"],
+      "url": "https://www.onepeloton.com/",
+      "steps": ["Sign in on the Peloton website, open Preferences → Subscriptions, choose the membership, and cancel it."],
+      "channels": ["web"]
+    },
+    {
+      "id": "duolingo",
+      "name": "Duolingo",
+      "kind": "merchant",
+      "match": ["duolingo"],
+      "url": "https://www.duolingo.com/",
+      "steps": [
+        "If you subscribed in the iPhone or Android app, cancel through Apple or Google instead.",
+        "Otherwise sign in on the website, open Settings → Subscription, and choose Cancel."
+      ],
+      "channels": ["web", "app"]
+    },
+    {
+      "id": "nytimes",
+      "name": "The New York Times",
+      "kind": "merchant",
+      "match": ["new york times", "nytimes", "nyt", "ny times"],
+      "url": "https://myaccount.nytimes.com/",
+      "steps": ["Sign in to My Account, open the subscription, and choose Cancel subscription (some plans route you to chat)."],
+      "channels": ["web", "chat", "phone"]
+    },
+    {
+      "id": "wsj",
+      "name": "The Wall Street Journal",
+      "kind": "merchant",
+      "match": ["wsj", "wall street journal", "dow jones"],
+      "url": "https://customercenter.wsj.com/",
+      "steps": ["Sign in to the Customer Center and look for Cancel subscription; some plans can only be cancelled by chat or phone."],
+      "channels": ["web", "chat", "phone"]
+    },
+    {
+      "id": "washington-post",
+      "name": "The Washington Post",
+      "kind": "merchant",
+      "match": ["washington post", "washpost", "wp digital"],
+      "url": "https://www.washingtonpost.com/",
+      "steps": ["Sign in, open your account → Subscription, and choose Cancel subscription."],
+      "channels": ["web"]
+    },
+    {
+      "id": "siriusxm",
+      "name": "SiriusXM",
+      "kind": "merchant",
+      "match": ["sirius", "siriusxm", "sirius xm"],
+      "url": "https://www.siriusxm.com/",
+      "steps": ["Sign in to your SiriusXM account; cancelling usually goes through online chat or a call to customer care, which will offer discounts first."],
+      "channels": ["chat", "phone"]
+    },
+    {
+      "id": "xfinity",
+      "name": "Xfinity (Comcast)",
+      "kind": "merchant",
+      "match": ["xfinity", "comcast"],
+      "url": "https://www.xfinity.com/",
+      "steps": ["Sign in to My Account. Cancelling service is done by chat, phone, or at a store, and equipment has to be returned."],
+      "channels": ["chat", "phone", "in_person"]
+    },
+    {
+      "id": "verizon",
+      "name": "Verizon",
+      "kind": "merchant",
+      "match": ["verizon", "vzwrlss"],
+      "url": "https://www.verizon.com/",
+      "steps": ["Sign in to My Verizon. Ending a line or service usually needs a call or a store visit; porting your number to another carrier also closes it."],
+      "channels": ["phone", "in_person", "chat"]
+    },
+    {
+      "id": "att",
+      "name": "AT&T",
+      "kind": "merchant",
+      "match": ["at t", "att"],
+      "url": "https://www.att.com/",
+      "steps": ["Sign in to your AT&T account. Cancelling service is done by phone or chat; porting your number to another carrier also closes a wireless line."],
+      "channels": ["phone", "chat", "in_person"]
+    },
+    {
+      "id": "t-mobile",
+      "name": "T-Mobile",
+      "kind": "merchant",
+      "match": ["t mobile", "tmobile"],
+      "url": "https://www.t-mobile.com/",
+      "steps": ["Sign in to your T-Mobile account. Cancelling service is done by phone, chat, or at a store."],
+      "channels": ["phone", "chat", "in_person"]
+    },
+    {
+      "id": "doordash",
+      "name": "DoorDash (DashPass)",
+      "kind": "merchant",
+      "match": ["dashpass", "doordash"],
+      "url": "https://www.doordash.com/",
+      "steps": ["Sign in, open Account → DashPass (or Manage DashPass), and choose End subscription."],
+      "channels": ["web", "app"]
+    },
+    {
+      "id": "uber-one",
+      "name": "Uber One",
+      "kind": "merchant",
+      "match": ["uber one"],
+      "url": "https://www.uber.com/",
+      "steps": ["In the Uber app, open Account → Uber One → Manage membership, and choose End membership."],
+      "channels": ["app"]
+    },
+    {
+      "id": "instacart",
+      "name": "Instacart+",
+      "kind": "merchant",
+      "match": ["instacart"],
+      "url": "https://www.instacart.com/",
+      "steps": ["Sign in, open Your account → Instacart+ membership, and choose End membership."],
+      "channels": ["web", "app"]
+    },
+    {
+      "id": "walmart-plus",
+      "name": "Walmart+",
+      "kind": "merchant",
+      "match": ["walmart plus", "walmart"],
+      "url": "https://www.walmart.com/plus/account",
+      "steps": ["Sign in, open Walmart+ → Manage membership, and choose Cancel membership."],
+      "channels": ["web", "app"]
+    },
+    {
+      "id": "costco",
+      "name": "Costco membership",
+      "kind": "merchant",
+      "match": ["costco"],
+      "url": "https://www.costco.com/",
+      "steps": ["Costco memberships are cancelled at a warehouse membership counter or through member services by phone; ask about a refund of the fee."],
+      "channels": ["in_person", "phone"]
+    },
+    {
+      "id": "patreon",
+      "name": "Patreon",
+      "kind": "merchant",
+      "match": ["patreon"],
+      "url": "https://www.patreon.com/settings/memberships",
+      "steps": ["Open Memberships, choose the creator, and select Edit → Cancel membership. Patreon memberships bought in the iPhone app are cancelled through Apple."],
+      "channels": ["web"]
+    },
+    {
+      "id": "playstation",
+      "name": "PlayStation Plus",
+      "kind": "merchant",
+      "match": ["playstation", "sony interactive", "psn"],
+      "url": "https://www.playstation.com/",
+      "steps": ["Sign in to your account management page, open Subscriptions Management, and turn off auto-renew."],
+      "channels": ["web"]
+    },
+    {
+      "id": "nintendo",
+      "name": "Nintendo Switch Online",
+      "kind": "merchant",
+      "match": ["nintendo"],
+      "url": "https://accounts.nintendo.com/",
+      "steps": ["Sign in to your Nintendo Account, open Shop Menu → Subscriptions, and turn off automatic renewal."],
+      "channels": ["web"]
+    },
+    {
+      "id": "hellofresh",
+      "name": "HelloFresh",
+      "kind": "merchant",
+      "match": ["hellofresh", "hello fresh"],
+      "url": "https://www.hellofresh.com/",
+      "steps": ["Sign in, open Account settings → Plan settings, and choose Cancel plan before the weekly cutoff for your next box."],
+      "channels": ["web"]
+    },
+    {
+      "id": "canva",
+      "name": "Canva",
+      "kind": "merchant",
+      "match": ["canva"],
+      "url": "https://www.canva.com/settings/billing-and-teams",
+      "steps": ["Sign in, open Settings → Billing & plans, and choose Cancel subscription."],
+      "channels": ["web"]
+    },
+    {
+      "id": "1password",
+      "name": "1Password",
+      "kind": "merchant",
+      "match": ["1password", "agilebits"],
+      "url": "https://my.1password.com/",
+      "steps": ["Sign in on 1Password.com, open Billing, and choose Cancel subscription (export your data first if you are leaving)."],
+      "channels": ["web"]
+    },
+    {
+      "id": "grammarly",
+      "name": "Grammarly",
+      "kind": "merchant",
+      "match": ["grammarly"],
+      "url": "https://account.grammarly.com/subscription",
+      "steps": ["Sign in, open Subscription, and choose Cancel subscription."],
+      "channels": ["web"]
+    },
+    {
+      "id": "zoom",
+      "name": "Zoom",
+      "kind": "merchant",
+      "match": ["zoom us", "zoom com", "zoom video"],
+      "url": "https://zoom.us/billing",
+      "steps": ["Sign in, open Billing → Current plans, and choose Cancel subscription."],
+      "channels": ["web"]
+    },
+    {
+      "id": "linkedin",
+      "name": "LinkedIn Premium",
+      "kind": "merchant",
+      "match": ["linkedin"],
+      "url": "https://www.linkedin.com/",
+      "steps": ["Sign in, open Me → Premium features (or Settings → Account preferences → Subscriptions), and choose Cancel subscription."],
+      "channels": ["web"]
+    },
+    {
+      "id": "crunchyroll",
+      "name": "Crunchyroll",
+      "kind": "merchant",
+      "match": ["crunchyroll"],
+      "url": "https://www.crunchyroll.com/account/membership",
+      "steps": ["Sign in, open Membership Info, and choose Cancel Membership."],
+      "channels": ["web"]
+    },
+    {
+      "id": "starz",
+      "name": "Starz",
+      "kind": "merchant",
+      "match": ["starz"],
+      "url": "https://www.starz.com/",
+      "steps": ["Sign in, open Settings → Account, and choose Cancel subscription."],
+      "channels": ["web"]
+    },
+    {
+      "id": "ring",
+      "name": "Ring Protect",
+      "kind": "merchant",
+      "match": ["ring com", "ring protect", "ring llc"],
+      "url": "https://account.ring.com/",
+      "steps": ["Sign in to your Ring account, open Plans, and choose Cancel Plan."],
+      "channels": ["web"]
+    },
+    {
+      "id": "nordvpn",
+      "name": "NordVPN",
+      "kind": "merchant",
+      "match": ["nordvpn", "nord vpn", "nordaccount"],
+      "url": "https://my.nordaccount.com/",
+      "steps": ["Sign in to Nord Account, open Billing → Subscriptions, and turn off auto-renewal."],
+      "channels": ["web"]
+    },
+    {
+      "id": "ancestry",
+      "name": "Ancestry",
+      "kind": "merchant",
+      "match": ["ancestry"],
+      "url": "https://www.ancestry.com/",
+      "steps": ["Sign in, open Account settings → Membership, and choose Cancel subscription."],
+      "channels": ["web"]
+    },
+    {
+      "id": "squarespace",
+      "name": "Squarespace",
+      "kind": "merchant",
+      "match": ["squarespace", "sqsp"],
+      "url": "https://account.squarespace.com/",
+      "steps": ["Sign in, open the site's Settings → Billing, and cancel the plan (domains renew separately; turn off auto-renew too)."],
+      "channels": ["web"]
+    },
+    {
+      "id": "godaddy",
+      "name": "GoDaddy",
+      "kind": "merchant",
+      "match": ["godaddy", "dnh godaddy"],
+      "url": "https://account.godaddy.com/products",
+      "steps": ["Sign in, open My Products, and turn off auto-renew (or cancel) for each product you no longer want."],
+      "channels": ["web"]
+    },
+    {
+      "id": "namecheap",
+      "name": "Namecheap",
+      "kind": "merchant",
+      "match": ["namecheap"],
+      "url": "https://www.namecheap.com/",
+      "steps": ["Sign in, open Domain List (or the product list), and turn off Auto-Renew for what you no longer want."],
+      "channels": ["web"]
+    }
+  ]
+}
