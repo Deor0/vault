@@ -64,8 +64,7 @@ export function readDatabaseUrl(env: Record<string, string | undefined> = proces
 /**
  * The connection string for schema migrations. Neon's pooled `DATABASE_URL`
  * goes through PgBouncer in transaction mode, so migrations prefer the direct
- * `DATABASE_URL_UNPOOLED` when it is set and fall back to `DATABASE_URL`
- * (for example the local Docker Compose database, which has no pooler).
+ * `DATABASE_URL_UNPOOLED` when it is set and fall back to `DATABASE_URL`.
  */
 export function readMigrationDatabaseUrl(env: Record<string, string | undefined> = process.env): string {
   const unpooled = env.DATABASE_URL_UNPOOLED?.trim();

@@ -28,8 +28,8 @@ describe("setupMessage", () => {
     expect(setupMessage(Object.assign(new Error("column does not exist"), { code: "42703" }))).toBe(
       "The database schema is out of date. Run `npm run db:migrate`.",
     );
-    expect(setupMessage(Object.assign(new Error("connect ECONNREFUSED"), { code: "ECONNREFUSED" }))).toMatch(
-      /docker compose up -d db/,
+    expect(setupMessage(Object.assign(new Error("connect ECONNREFUSED"), { code: "ECONNREFUSED" }))).toBe(
+      "Cannot reach Postgres. Check that DATABASE_URL points at your Neon database.",
     );
     expect(setupMessage(new Error("timeout exceeded when trying to connect"))).toMatch(/Cannot reach Postgres/);
     expect(setupMessage(Object.assign(new Error("password authentication failed"), { code: "28P01" }))).toMatch(

@@ -23,7 +23,7 @@ export function setupMessage(error: unknown): string {
   if (code === "42703") return "The database schema is out of date. Run `npm run db:migrate`.";
   const message = error instanceof Error ? error.message : "";
   if (code === "ECONNREFUSED" || code === "ENOTFOUND" || /timeout.*connect|connection timeout/i.test(message)) {
-    return "Cannot reach Postgres. Start it with `docker compose up -d db` and check DATABASE_URL.";
+    return "Cannot reach Postgres. Check that DATABASE_URL points at your Neon database.";
   }
   if (code === "28P01" || code === "3D000") {
     return "Postgres rejected the connection. Check the credentials and database name in DATABASE_URL.";

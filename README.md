@@ -35,20 +35,19 @@ Subscriptions with a row's **Cancel** panel open: [desktop, dark](docs/screensho
   passwords hashed by bcrypt (`bcryptjs`)
 - IBM Plex Sans and IBM Plex Mono through `next/font/google`: downloaded once when the app
   builds or the dev server starts, then served by Vault itself (the browser never calls Google)
-- Postgres (local via Docker Compose; hosted on [Neon](https://neon.com)), through
+- Postgres on [Neon](https://neon.com) for local development and hosted, through
   node-postgres (`pg`), with plain SQL migrations in `db/migrations/`
 - Plaid's official Node SDK (`plaid`) and `react-plaid-link` for Plaid Link
 - Vitest for tests. Server tests run against an in-process Postgres
-  ([PGlite](https://pglite.dev)) and mock Plaid, so they need neither Docker nor Plaid keys.
+  ([PGlite](https://pglite.dev)) and mock Plaid, so they need neither a database server nor Plaid keys.
 
 ## Local setup
 
-Prerequisites: Node.js 20.9 or newer, and Docker (for Postgres).
+Prerequisites: Node.js 20.9 or newer.
 
 ```bash
 npm install
-cp .env.example .env            # then fill in the values (see below)
-docker compose up -d db         # Postgres 17 on localhost:5432 (user/password/db: vault)
+cp .env.example .env            # then set the Neon connection strings (see below)
 npm run db:migrate              # create the tables (safe to re-run)
 npm run dev                     # http://127.0.0.1:3000
 ```
@@ -69,8 +68,8 @@ window or choose to continue without one.
 | `PLAID_CLIENT_ID` | Your Plaid client ID |
 | `PLAID_SECRET` | The Plaid secret **for the environment in `PLAID_ENV`** (Sandbox and Production use different secrets) |
 | `PLAID_ENV` | `sandbox` (default) or `production` |
-| `DATABASE_URL` | `postgres://vault:vault@localhost:5432/vault` for the Docker Compose database, or Neon's pooled connection string (see [Hosted database (Neon)](#hosted-database-neon)) |
-| `DATABASE_URL_UNPOOLED` | Optional. Neon's direct connection string; `npm run db:migrate` prefers it over `DATABASE_URL`. Leave unset for Docker Compose |
+| `DATABASE_URL` | Neon's pooled connection string (the host ends in `-pooler`). Local development and hosted use the same Neon database (see [Hosted database (Neon)](#hosted-database-neon)) |
+| `DATABASE_URL_UNPOOLED` | Neon's direct connection string. `npm run db:migrate` prefers it over `DATABASE_URL` |
 | `BETTER_AUTH_SECRET` | 32 random bytes, base64-encoded. Auth.js uses it to encrypt the session cookie. Generate one with `openssl rand -base64 32` (or `npm run gen:key`). Changing it signs everyone out. `AUTH_SECRET` (the Auth.js default name) is accepted as an alias and wins if both are set |
 | `AUTH_TRUST_HOST` | `true` (as in `.env.example`) so Auth.js accepts `127.0.0.1` under `npm start`. `npm run dev` does not need it |
 | `TOKEN_ENCRYPTION_KEY` | 32 random bytes, base64-encoded. It encrypts Plaid access tokens at rest. Generate one with `openssl rand -base64 32` (or `npm run gen:key`) |
@@ -96,11 +95,9 @@ Once Plaid approves your Trial plan for Production access:
 1. In **Developers → Keys**, copy the **Production** secret.
 2. In `.env`, set `PLAID_ENV=production` and replace `PLAID_SECRET` with the Production secret.
    `PLAID_CLIENT_ID` stays the same.
-3. Start from an empty database. Sandbox Items do not work against Production, and the data
-   in them is fake:
-   ```bash
-   docker compose down -v && docker compose up -d db && npm run db:migrate
-   ```
+3. Start from a Neon branch that does not already hold Sandbox Items. Sandbox Items do not
+   work against Production, and the data in them is fake. Point `DATABASE_URL` and
+   `DATABASE_URL_UNPOOLED` at that branch, then run `npm run db:migrate`.
 4. Restart `npm run dev`.
 
 No code changes are needed. Keep these Trial plan limits in mind:
@@ -117,9 +114,13 @@ No code changes are needed. Keep these Trial plan limits in mind:
 
 ### Hosted database (Neon)
 
-The hosted database is Lakebase Postgres on Neon. The repo is set up for Neon with
-`neon.ts`; the gitignored `.neon` file links a checkout to the Neon project and branch.
-To point a checkout at the Neon `production` branch:
+Local development and the hosted app use the same Lakebase Postgres on Neon. Copy the
+pooled connection string into `DATABASE_URL` and the direct connection string into
+`DATABASE_URL_UNPOOLED`, from the Neon console for an existing branch (or from the
+Vercel project if the Neon integration already set them). Then run `npm run db:migrate`.
+
+The repo also has `neon.ts`. A gitignored `.neon` file can link a checkout to a Neon
+project and branch. That CLI path is optional:
 
 ```bash
 npm i -g neon
@@ -235,13 +236,14 @@ Plaid sends them again; detection falls back to the merchant name until then.
 - **Every page answers "There was a problem with the server configuration"**: Auth.js
   is missing a setting. Check that `BETTER_AUTH_SECRET` (or `AUTH_SECRET`) is set in `.env`, and under `npm start`
   also `AUTH_TRUST_HOST=true`. The server log names the exact problem.
-- **The page says Vault is not ready yet**: follow the message. It usually means Postgres is
-  not running (`docker compose up -d db`), the schema is missing (`npm run db:migrate`), or a
+- **The page says Vault is not ready yet**: follow the message. It usually means
+  `DATABASE_URL` does not reach Neon, the schema is missing (`npm run db:migrate`), or a
   variable is missing from `.env`.
-- **Under `npm run dev`, the page stays on "Loading accounts…"**: Postgres is probably not
-  running. When the database connection is refused, the Next.js dev server cannot render the
-  error and the page never finishes loading (production builds show the setup message).
-  Start Postgres and reload.
+- **Under `npm run dev`, the page stays on "Loading accounts…"**: the database connection
+  is refused or timing out. Check `DATABASE_URL` (the pooled Neon string). When the
+  connection is refused, the Next.js dev server cannot render the error and the page never
+  finishes loading (production builds show the setup message). Fix the connection string
+  and reload.
 
 ## Scripts
 
@@ -249,7 +251,6 @@ Plaid sends them again; detection falls back to the merchant name until then.
 | --- | --- |
 | `npm run dev` | Development server on 127.0.0.1:3000 |
 | `npm run build` / `npm start` | Production build / serve it on 127.0.0.1 |
-| `npm run db:up` | `docker compose up -d db` |
 | `npm run db:migrate` | Apply pending SQL migrations from `db/migrations/` |
 | `npm test` | Run the test suite (Plaid mocked, in-process Postgres) |
 | `npm run lint` | ESLint |
@@ -318,9 +319,9 @@ Security notes:
   the session again before touching data. All queries are scoped to the signed-in user, and
   foreign keys keep each account and transaction owned by the same user as its Item. The
   API routes also accept only same-origin JSON requests (CSRF protection).
-- The dev and production servers still bind to `127.0.0.1`, and Postgres is published on
-  localhost only. Before exposing Vault to a network, serve it over HTTPS and set `AUTH_URL`
-  instead of `AUTH_TRUST_HOST`.
+- The dev and production servers still bind to `127.0.0.1`. The database is Neon;
+  connection strings stay in `.env`. Before exposing Vault to a network, serve it over
+  HTTPS and set `AUTH_URL` instead of `AUTH_TRUST_HOST`.
 - **Upgrading a database from before accounts existed**: `npm run db:migrate` keeps
   already-linked banks but leaves them without an owner, so nobody sees them. The first
   account created afterwards takes ownership of all of them. Later accounts start empty.
