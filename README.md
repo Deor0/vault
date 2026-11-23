@@ -95,8 +95,9 @@ Once Plaid approves your Trial plan for Production access:
 1. In **Developers → Keys**, copy the **Production** secret.
 2. In `.env`, set `PLAID_ENV=production` and replace `PLAID_SECRET` with the Production secret.
    `PLAID_CLIENT_ID` stays the same.
-3. Start from a Neon branch that does not already hold Sandbox Items. Sandbox Items do not
-   work against Production, and the data in them is fake. Point `DATABASE_URL` and
+3. Start from an empty Neon branch (no schema and no data, created as described in
+   [Hosted database (Neon)](#hosted-database-neon)). Sandbox Items do not work against
+   Production, and the data in them is fake. Point `DATABASE_URL` and
    `DATABASE_URL_UNPOOLED` at that branch, then run `npm run db:migrate`.
 4. Restart `npm run dev`.
 
@@ -119,14 +120,16 @@ which holds real users, encrypted Plaid access tokens and transactions. Local de
 must not point at it: `npm run dev` would read and write live data, and `npm run db:migrate`
 would apply unmerged migrations to the live schema.
 
-For local development, create your own branch (for example `dev`) in the Neon console as
-a schema-only branch of `production`, so it holds no live data. Copy that branch's pooled
+For local development, create your own empty branch (for example `dev`) in the Neon
+console: a new root branch with no schema and no data, or a branch in a separate dev
+project. Do not copy `production`, not even schema-only: `npm run db:migrate` builds the
+schema itself and fails on tables that already exist. Copy that branch's pooled
 connection string into `DATABASE_URL` and its direct connection string into
 `DATABASE_URL_UNPOOLED`, then run `npm run db:migrate`. Do not copy the Vercel project's
 values; they point at `production`.
 
 The repo also has `neon.ts`. A gitignored `.neon` file can link a checkout to a Neon
-project and branch. That CLI path is optional; link it to your development branch:
+project and branch. That CLI path is optional; create the empty development branch first, then link it:
 
 ```bash
 npm i -g neon
