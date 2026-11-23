@@ -202,7 +202,7 @@ export function detectRecurring(transactions: RecurringInput[], today: string): 
       const suffix = `@${Math.round(median(band.map((txn) => txn.amount)))}`;
       const stream = classify(
         `${key}${suffix}`,
-        aliasKeys.map((alias) => `${alias}${suffix}`),
+        [...aliasKeys.map((alias) => `${alias}${suffix}`), key, ...aliasKeys],
         band,
         today,
       );

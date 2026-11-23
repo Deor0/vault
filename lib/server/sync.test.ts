@@ -120,7 +120,7 @@ describe("syncItem", () => {
     ]);
   });
 
-  it("stores Plaid's merchant id, website, and logo, and keeps them current", async () => {
+  it("stores Plaid's merchant id and website, and keeps them current", async () => {
     plaid.syncTransactions.mockResolvedValueOnce(
       makeSyncPage({
         added: [
@@ -128,7 +128,6 @@ describe("syncItem", () => {
             transaction_id: "t1",
             merchant_entity_id: "ent-netflix",
             website: "netflix.com",
-            logo_url: "https://plaid-merchant-logos.plaid.com/netflix.png",
           }),
           makeTransaction({ transaction_id: "t2" }),
         ],
@@ -146,11 +145,11 @@ describe("syncItem", () => {
     await syncItem({ db, plaid, encryptionKey }, userId, itemId);
 
     const { rows } = await db.query(
-      "SELECT plaid_transaction_id, merchant_entity_id, website, logo_url FROM transactions ORDER BY plaid_transaction_id",
+      "SELECT plaid_transaction_id, merchant_entity_id, website FROM transactions ORDER BY plaid_transaction_id",
     );
     expect(rows).toEqual([
-      { plaid_transaction_id: "t1", merchant_entity_id: "ent-netflix", website: "www.netflix.com", logo_url: null },
-      { plaid_transaction_id: "t2", merchant_entity_id: null, website: null, logo_url: null },
+      { plaid_transaction_id: "t1", merchant_entity_id: "ent-netflix", website: "www.netflix.com" },
+      { plaid_transaction_id: "t2", merchant_entity_id: null, website: null },
     ]);
   });
 

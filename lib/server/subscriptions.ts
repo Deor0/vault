@@ -29,6 +29,8 @@ export interface SubscriptionCharge {
 
 export interface Subscription {
   key: string;
+  /** The key the user's decision about this stream is stored under (an alias key when it was saved before a re-key). */
+  overrideKey: string;
   name: string;
   /** The name detection found, shown when the user renamed the stream. */
   detectedName: string;
@@ -289,6 +291,7 @@ export function buildSubscriptions(
 
     const subscription: Subscription = {
       key: stream.key,
+      overrideKey: override?.streamKey ?? stream.key,
       name,
       detectedName: stream.label,
       kind: override?.kind ?? kind,

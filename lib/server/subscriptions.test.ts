@@ -155,6 +155,42 @@ describe("getSubscriptions", () => {
     expect(after.charges).toHaveLength(6);
   });
 
+  it("keeps a cancellation found under an old key when the user edits the stream again", async () => {
+    const plaid = await link(userId, monthly("2026-06", 5, 9).map((date) => charge(date, 11.99, "Hulu")));
+    const before = (await getSubscriptions(db, userId, TODAY)).active[0];
+    await saveOverride(db, userId, { streamKey: before.overrideKey, status: "cancelled" }, "2026-11-10");
+
+    plaid.syncTransactions.mockResolvedValueOnce(
+      makeSyncPage({ added: [charge("2026-11-09", 11.99, "Hulu", { merchant_entity_id: "ent-hulu" })], next_cursor: "c2" }),
+    );
+    await syncAllItems({ db, plaid, encryptionKey }, userId);
+    const renamed = (await getSubscriptions(db, userId, TODAY)).inactive[0];
+    expect(renamed).toMatchObject({ key: "e:ent-hulu", overrideKey: "n:hulu", status: "cancelled" });
+    await saveOverride(db, userId, { streamKey: renamed.overrideKey, displayName: "Hulu (no ads)" });
+
+    const after = await getSubscriptions(db, userId, TODAY);
+    expect(after.active).toEqual([]);
+    expect(after.inactive[0]).toMatchObject({ name: "Hulu (no ads)", status: "cancelled", cancelledAt: "2026-11-10" });
+  });
+
+  it("keeps a decision made before a second plan from the same merchant split the stream", async () => {
+    const plaid = await link(userId, monthly("2026-06", 6, 5).map((date) => charge(date, 2.99, "Apple")));
+    const before = (await getSubscriptions(db, userId, TODAY)).active[0];
+    expect(before.key).toBe("n:apple");
+    await saveOverride(db, userId, { streamKey: before.overrideKey, status: "ignored" });
+
+    plaid.syncTransactions.mockResolvedValueOnce(
+      makeSyncPage({ added: monthly("2026-06", 6, 14).map((date) => charge(date, 19.95, "Apple")), next_cursor: "c2" }),
+    );
+    await syncAllItems({ db, plaid, encryptionKey }, userId);
+    const data = await getSubscriptions(db, userId, TODAY);
+    expect(data.active).toEqual([]);
+    expect(data.ignored.map((sub) => [sub.key, sub.overrideKey]).sort()).toEqual([
+      ["n:apple@20", "n:apple"],
+      ["n:apple@3", "n:apple"],
+    ]);
+  });
+
   it("shows each user only their own subscriptions and decisions", async () => {
     await link(userId, history());
     const other = await createTestUser(db, "someone-else@example.com");

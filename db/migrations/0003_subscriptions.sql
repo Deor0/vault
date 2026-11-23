@@ -2,13 +2,12 @@
 -- about each recurring charge Vault detects (lib/server/subscriptions.ts).
 
 -- Plaid sends these on every /transactions/sync row. merchant_entity_id is a
--- stable merchant id (the best way to group a merchant's charges); website and
--- logo_url help link to the merchant. Rows synced before this migration keep
+-- stable merchant id (the best way to group a merchant's charges); website
+-- helps link to the merchant. Rows synced before this migration keep
 -- NULL until Plaid sends them again.
 ALTER TABLE transactions
   ADD COLUMN merchant_entity_id text,
-  ADD COLUMN website text,
-  ADD COLUMN logo_url text;
+  ADD COLUMN website text;
 
 -- One row per recurring charge the user has made a decision about. stream_key
 -- is the detector's id for the charge (a merchant id or a normalized merchant
