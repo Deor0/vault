@@ -35,8 +35,8 @@ Subscriptions with a row's **Cancel** panel open: [desktop, dark](docs/screensho
   passwords hashed by bcrypt (`bcryptjs`)
 - IBM Plex Sans and IBM Plex Mono through `next/font/google`: downloaded once when the app
   builds or the dev server starts, then served by Vault itself (the browser never calls Google)
-- Postgres on [Neon](https://neon.com) for local development and hosted, through
-  node-postgres (`pg`), with plain SQL migrations in `db/migrations/`
+- Postgres on [Neon](https://neon.com) (a development branch locally, `production` when
+  hosted), through node-postgres (`pg`), with plain SQL migrations in `db/migrations/`
 - Plaid's official Node SDK (`plaid`) and `react-plaid-link` for Plaid Link
 - Vitest for tests. Server tests run against an in-process Postgres
   ([PGlite](https://pglite.dev)) and mock Plaid, so they need neither a database server nor Plaid keys.
@@ -68,8 +68,8 @@ window or choose to continue without one.
 | `PLAID_CLIENT_ID` | Your Plaid client ID |
 | `PLAID_SECRET` | The Plaid secret **for the environment in `PLAID_ENV`** (Sandbox and Production use different secrets) |
 | `PLAID_ENV` | `sandbox` (default) or `production` |
-| `DATABASE_URL` | Neon's pooled connection string (the host ends in `-pooler`). Local development and hosted use the same Neon database (see [Hosted database (Neon)](#hosted-database-neon)) |
-| `DATABASE_URL_UNPOOLED` | Neon's direct connection string. `npm run db:migrate` prefers it over `DATABASE_URL` |
+| `DATABASE_URL` | Neon's pooled connection string (the host ends in `-pooler`) for your own development branch, never `production` (see [Hosted database (Neon)](#hosted-database-neon)) |
+| `DATABASE_URL_UNPOOLED` | Neon's direct connection string for the same development branch. `npm run db:migrate` prefers it over `DATABASE_URL` |
 | `BETTER_AUTH_SECRET` | 32 random bytes, base64-encoded. Auth.js uses it to encrypt the session cookie. Generate one with `openssl rand -base64 32` (or `npm run gen:key`). Changing it signs everyone out. `AUTH_SECRET` (the Auth.js default name) is accepted as an alias and wins if both are set |
 | `AUTH_TRUST_HOST` | `true` (as in `.env.example`) so Auth.js accepts `127.0.0.1` under `npm start`. `npm run dev` does not need it |
 | `TOKEN_ENCRYPTION_KEY` | 32 random bytes, base64-encoded. It encrypts Plaid access tokens at rest. Generate one with `openssl rand -base64 32` (or `npm run gen:key`) |
@@ -114,18 +114,24 @@ No code changes are needed. Keep these Trial plan limits in mind:
 
 ### Hosted database (Neon)
 
-Local development and the hosted app use the same Lakebase Postgres on Neon. Copy the
-pooled connection string into `DATABASE_URL` and the direct connection string into
-`DATABASE_URL_UNPOOLED`, from the Neon console for an existing branch (or from the
-Vercel project if the Neon integration already set them). Then run `npm run db:migrate`.
+The database is Lakebase Postgres on Neon. The hosted app uses the `production` branch,
+which holds real users, encrypted Plaid access tokens and transactions. Local development
+must not point at it: `npm run dev` would read and write live data, and `npm run db:migrate`
+would apply unmerged migrations to the live schema.
+
+For local development, create your own branch (for example `dev`) in the Neon console as
+a schema-only branch of `production`, so it holds no live data. Copy that branch's pooled
+connection string into `DATABASE_URL` and its direct connection string into
+`DATABASE_URL_UNPOOLED`, then run `npm run db:migrate`. Do not copy the Vercel project's
+values; they point at `production`.
 
 The repo also has `neon.ts`. A gitignored `.neon` file can link a checkout to a Neon
-project and branch. That CLI path is optional:
+project and branch. That CLI path is optional; link it to your development branch:
 
 ```bash
 npm i -g neon
 neon login
-neon init -y --org-id <org-id> --project-id <project-id> --branch production --services postgres
+neon init -y --org-id <org-id> --project-id <project-id> --branch dev --services postgres
 neon deploy        # applies neon.ts and writes DATABASE_URL + DATABASE_URL_UNPOOLED
                    # into .env (or .env.local when there is no .env)
 npm run db:migrate # uses the direct DATABASE_URL_UNPOOLED
