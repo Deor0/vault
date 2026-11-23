@@ -19,6 +19,11 @@ export interface SubscriptionOverride {
   cancelledAt: string | null;
 }
 
+interface StoredOverride extends SubscriptionOverride {
+  /** The day the decision was first saved. */
+  createdOn: string;
+}
+
 export interface SubscriptionCharge {
   id: string;
   date: string;
@@ -29,8 +34,8 @@ export interface SubscriptionCharge {
 
 export interface Subscription {
   key: string;
-  /** The key the user's decision about this stream is stored under (an alias key when it was saved before a re-key). */
-  overrideKey: string;
+  /** The other key this stream's decision was found under (saved before a re-key), or null when it is stored under `key`. */
+  inheritedFrom: string | null;
   name: string;
   /** The name detection found, shown when the user renamed the stream. */
   detectedName: string;
@@ -136,15 +141,16 @@ async function loadTransactions(db: Queryable, userId: string, since: string): P
   return rows;
 }
 
-export async function getOverrides(db: Queryable, userId: string): Promise<SubscriptionOverride[]> {
+export async function getOverrides(db: Queryable, userId: string): Promise<StoredOverride[]> {
   const { rows } = await db.query<{
     stream_key: string;
     status: OverrideStatus;
     kind: SubscriptionKind | null;
     display_name: string | null;
     cancelled_at: string | null;
+    created_on: string;
   }>(
-    `SELECT stream_key, status, kind, display_name, cancelled_at::text AS cancelled_at
+    `SELECT stream_key, status, kind, display_name, cancelled_at::text AS cancelled_at, created_at::date::text AS created_on
      FROM subscription_overrides WHERE user_id = $1`,
     [userId],
   );
@@ -154,6 +160,7 @@ export async function getOverrides(db: Queryable, userId: string): Promise<Subsc
     kind: row.kind,
     displayName: row.display_name,
     cancelledAt: row.cancelled_at,
+    createdOn: row.created_on,
   }));
 }
 
@@ -163,11 +170,13 @@ export interface OverrideInput {
   kind?: SubscriptionKind | null;
   displayName?: string | null;
   cancelledAt?: string | null;
+  /** A key this stream's decision was found under; its fields seed the stream's own row when there is none yet. */
+  inheritFrom?: string | null;
 }
 
 /**
  * Record the user's decision about a stream. Fields left out keep their stored
- * value. Marking a stream cancelled without a date uses `today`; any other
+ * value (or the `inheritFrom` row's value when the stream has no row yet). Marking a stream cancelled without a date uses `today`; any other
  * status clears the cancellation date.
  */
 export async function saveOverride(
@@ -187,7 +196,12 @@ export async function saveOverride(
     cancelled_at: string | null;
   }>(
     `INSERT INTO subscription_overrides (user_id, stream_key, status, kind, display_name, cancelled_at)
-     VALUES ($1, $2, COALESCE($3, 'confirmed'), $5, $7, $9::date)
+     SELECT $1, $2, COALESCE($3::text, src.status, 'confirmed'),
+       CASE WHEN $4 THEN $5::text ELSE src.kind END,
+       CASE WHEN $6 THEN $7::text ELSE src.display_name END,
+       CASE WHEN $8 THEN $9::date ELSE src.cancelled_at END
+     FROM (SELECT 1) AS one
+       LEFT JOIN subscription_overrides src ON src.user_id = $1 AND src.stream_key = $10::text
      ON CONFLICT (user_id, stream_key) DO UPDATE SET
        status = CASE WHEN $3::text IS NULL THEN subscription_overrides.status ELSE $3 END,
        kind = CASE WHEN $4 THEN $5 ELSE subscription_overrides.kind END,
@@ -205,6 +219,7 @@ export async function saveOverride(
       displayName ?? null,
       cancelledAt !== undefined,
       cancelledAt ?? null,
+      input.inheritFrom ?? null,
     ],
   );
   const row = rows[0];
@@ -238,7 +253,7 @@ export async function getSubscriptions(
 
 export function buildSubscriptions(
   rows: TransactionRow[],
-  overrides: SubscriptionOverride[],
+  overrides: StoredOverride[],
   today: string,
 ): SubscriptionsData {
   const accounts = new Map(rows.map((row) => [row.account_id, { name: row.account_name, mask: row.account_mask }]));
@@ -269,7 +284,12 @@ export function buildSubscriptions(
   };
 
   for (const stream of detectRecurring(inputs, today)) {
-    const override = [stream.key, ...stream.aliasKeys].map((key) => byKey.get(key)).find(Boolean) ?? null;
+    const override =
+      [stream.key, ...stream.aliasKeys].map((key) => byKey.get(key)).find(Boolean) ??
+      stream.parentKeys
+        .map((key) => byKey.get(key))
+        .find((parent) => parent !== undefined && stream.firstDate <= parent.createdOn) ??
+      null;
     const account = accounts.get(stream.accountId);
     const charges: SubscriptionCharge[] = stream.charges
       .map((charge) => {
@@ -291,7 +311,7 @@ export function buildSubscriptions(
 
     const subscription: Subscription = {
       key: stream.key,
-      overrideKey: override?.streamKey ?? stream.key,
+      inheritedFrom: override && override.streamKey !== stream.key ? override.streamKey : null,
       name,
       detectedName: stream.label,
       kind: override?.kind ?? kind,

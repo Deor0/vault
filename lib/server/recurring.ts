@@ -41,6 +41,8 @@ export interface RecurringStream {
   key: string;
   /** Other keys the same stream may have been stored under (for example before Plaid sent a merchant id). */
   aliasKeys: string[];
+  /** Keys of the whole merchant group this amount band was split from; a decision stored there applies only if this band's charges predate it. */
+  parentKeys: string[];
   label: string;
   merchantName: string | null;
   website: string | null;
@@ -202,11 +204,11 @@ export function detectRecurring(transactions: RecurringInput[], today: string): 
       const suffix = `@${Math.round(median(band.map((txn) => txn.amount)))}`;
       const stream = classify(
         `${key}${suffix}`,
-        [...aliasKeys.map((alias) => `${alias}${suffix}`), key, ...aliasKeys],
+        aliasKeys.map((alias) => `${alias}${suffix}`),
         band,
         today,
       );
-      if (stream) streams.push(stream);
+      if (stream) streams.push({ ...stream, parentKeys: [key, ...aliasKeys] });
     }
   }
   return streams.sort((a, b) => a.nextDate.localeCompare(b.nextDate) || b.monthlyAmount - a.monthlyAmount);
@@ -299,6 +301,7 @@ function classify(
   return {
     key,
     aliasKeys,
+    parentKeys: [],
     label: last.merchantName ?? last.name,
     merchantName: last.merchantName,
     website: charges.map((txn) => txn.website).findLast((website) => website) ?? null,

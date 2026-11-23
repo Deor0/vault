@@ -326,7 +326,7 @@ function CancelPanel({ sub }: { sub: Subscription }) {
                 type="button"
                 className="button small"
                 disabled={busy}
-                onClick={() => save({ streamKey: sub.overrideKey, status: "confirmed" })}
+                onClick={() => save({ streamKey: sub.key, inheritFrom: sub.inheritedFrom, status: "confirmed" })}
               >
                 Undo: still subscribed
               </button>
@@ -343,7 +343,7 @@ function CancelPanel({ sub }: { sub: Subscription }) {
                 type="button"
                 className="button primary small"
                 disabled={busy}
-                onClick={() => save({ streamKey: sub.overrideKey, status: "cancelled" })}
+                onClick={() => save({ streamKey: sub.key, inheritFrom: sub.inheritedFrom, status: "cancelled" })}
               >
                 {busy ? "Saving…" : "Mark cancelled"}
               </button>
@@ -412,7 +412,7 @@ function DetailsPanel({ sub }: { sub: Subscription }) {
           className="rename-form"
           onSubmit={(event) => {
             event.preventDefault();
-            void save({ streamKey: sub.overrideKey, displayName: name.trim() === sub.detectedName ? null : name });
+            void save({ streamKey: sub.key, inheritFrom: sub.inheritedFrom, displayName: name.trim() === sub.detectedName ? null : name });
           }}
         >
           <div className="field">
@@ -434,7 +434,7 @@ function DetailsPanel({ sub }: { sub: Subscription }) {
               type="button"
               className="button small"
               disabled={busy}
-              onClick={() => save({ streamKey: sub.overrideKey, status: "confirmed" })}
+              onClick={() => save({ streamKey: sub.key, inheritFrom: sub.inheritedFrom, status: "confirmed" })}
             >
               Keep
             </button>
@@ -443,7 +443,7 @@ function DetailsPanel({ sub }: { sub: Subscription }) {
             type="button"
             className="button small"
             disabled={busy}
-            onClick={() => save({ streamKey: sub.overrideKey, kind: otherKind })}
+            onClick={() => save({ streamKey: sub.key, inheritFrom: sub.inheritedFrom, kind: otherKind })}
           >
             File under {otherKind === "bill" ? "Bills" : "Subscriptions"}
           </button>
@@ -451,7 +451,7 @@ function DetailsPanel({ sub }: { sub: Subscription }) {
             type="button"
             className="button small"
             disabled={busy}
-            onClick={() => save({ streamKey: sub.overrideKey, status: "ignored" })}
+            onClick={() => save({ streamKey: sub.key, inheritFrom: sub.inheritedFrom, status: "ignored" })}
           >
             Not recurring: ignore
           </button>
@@ -480,7 +480,7 @@ export function ReviewActions({ subscription: sub }: { subscription: Subscriptio
           className="button small"
           disabled={busy}
           aria-label={`Keep ${sub.name}`}
-          onClick={() => save({ streamKey: sub.overrideKey, status: "confirmed" })}
+          onClick={() => save({ streamKey: sub.key, inheritFrom: sub.inheritedFrom, status: "confirmed" })}
         >
           Keep
         </button>
@@ -489,7 +489,7 @@ export function ReviewActions({ subscription: sub }: { subscription: Subscriptio
           className="button subtle"
           disabled={busy}
           aria-label={`Ignore ${sub.name}`}
-          onClick={() => save({ streamKey: sub.overrideKey, status: "ignored" })}
+          onClick={() => save({ streamKey: sub.key, inheritFrom: sub.inheritedFrom, status: "ignored" })}
         >
           Ignore
         </button>
@@ -532,7 +532,7 @@ function IgnoredItem({ sub }: { sub: Subscription }) {
         className="button subtle"
         disabled={busy}
         aria-label={`Restore ${sub.name}`}
-        onClick={() => save({ streamKey: sub.overrideKey, status: "confirmed" })}
+        onClick={() => save({ streamKey: sub.key, inheritFrom: sub.inheritedFrom, status: "confirmed" })}
       >
         Restore
       </button>

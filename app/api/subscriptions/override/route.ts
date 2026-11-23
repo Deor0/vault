@@ -17,6 +17,7 @@ const bodySchema = z
     kind: z.enum(["subscription", "bill"]).nullable().optional(),
     displayName: z.string().max(80, "Name is too long (80 characters at most)").nullable().optional(),
     cancelledAt: isoDate.nullable().optional(),
+    inheritFrom: z.string().trim().min(1).max(300, "inheritFrom is too long").nullable().optional(),
   })
   .refine((body) => body.cancelledAt === undefined || body.cancelledAt === null || body.status === "cancelled", {
     message: "cancelledAt is only allowed with status \"cancelled\"",
