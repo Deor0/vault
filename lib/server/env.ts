@@ -62,6 +62,17 @@ export function readDatabaseUrl(env: Record<string, string | undefined> = proces
 }
 
 /**
+ * The connection string for schema migrations. Neon's pooled `DATABASE_URL`
+ * goes through PgBouncer in transaction mode, so migrations prefer the direct
+ * `DATABASE_URL_UNPOOLED` when it is set and fall back to `DATABASE_URL`
+ * (for example the local Docker Compose database, which has no pooler).
+ */
+export function readMigrationDatabaseUrl(env: Record<string, string | undefined> = process.env): string {
+  const unpooled = env.DATABASE_URL_UNPOOLED?.trim();
+  return unpooled || readDatabaseUrl(env);
+}
+
+/**
  * The Auth.js session secret. `AUTH_SECRET` (the name Auth.js reads by itself)
  * wins when set; otherwise `BETTER_AUTH_SECRET` is used. Blank values count as
  * unset. Returns undefined when neither is set, so Auth.js reports its own

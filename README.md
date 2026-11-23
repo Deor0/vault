@@ -31,7 +31,8 @@ full size.
   passwords hashed by bcrypt (`bcryptjs`)
 - IBM Plex Sans and IBM Plex Mono through `next/font/google`: downloaded once when the app
   builds or the dev server starts, then served by Vault itself (the browser never calls Google)
-- Postgres (local via Docker Compose), with plain SQL migrations in `db/migrations/`
+- Postgres (local via Docker Compose; hosted on [Neon](https://neon.com)), through
+  node-postgres (`pg`), with plain SQL migrations in `db/migrations/`
 - Plaid's official Node SDK (`plaid`) and `react-plaid-link` for Plaid Link
 - Vitest for tests. Server tests run against an in-process Postgres
   ([PGlite](https://pglite.dev)) and mock Plaid, so they need neither Docker nor Plaid keys.
@@ -64,7 +65,8 @@ window or choose to continue without one.
 | `PLAID_CLIENT_ID` | Your Plaid client ID |
 | `PLAID_SECRET` | The Plaid secret **for the environment in `PLAID_ENV`** (Sandbox and Production use different secrets) |
 | `PLAID_ENV` | `sandbox` (default) or `production` |
-| `DATABASE_URL` | `postgres://vault:vault@localhost:5432/vault` for the Docker Compose database |
+| `DATABASE_URL` | `postgres://vault:vault@localhost:5432/vault` for the Docker Compose database, or Neon's pooled connection string (see [Hosted database (Neon)](#hosted-database-neon)) |
+| `DATABASE_URL_UNPOOLED` | Optional. Neon's direct connection string; `npm run db:migrate` prefers it over `DATABASE_URL`. Leave unset for Docker Compose |
 | `BETTER_AUTH_SECRET` | 32 random bytes, base64-encoded. Auth.js uses it to encrypt the session cookie. Generate one with `openssl rand -base64 32` (or `npm run gen:key`). Changing it signs everyone out. `AUTH_SECRET` (the Auth.js default name) is accepted as an alias and wins if both are set |
 | `AUTH_TRUST_HOST` | `true` (as in `.env.example`) so Auth.js accepts `127.0.0.1` under `npm start`. `npm run dev` does not need it |
 | `TOKEN_ENCRYPTION_KEY` | 32 random bytes, base64-encoded. It encrypts Plaid access tokens at rest. Generate one with `openssl rand -base64 32` (or `npm run gen:key`) |
@@ -108,6 +110,33 @@ No code changes are needed. Keep these Trial plan limits in mind:
   new Item at Plaid, and keeps the existing one. The duplicate still counts toward the limit.
 - OAuth banks (Chase, Wells Fargo, and others) open in a popup from Link.
   `PLAID_REDIRECT_URI` is not required.
+
+### Hosted database (Neon)
+
+The hosted database is Lakebase Postgres on Neon. The repo is set up for Neon with
+`neon.ts`; the gitignored `.neon` file links a checkout to the Neon project and branch.
+To point a checkout at the Neon `production` branch:
+
+```bash
+npm i -g neon
+neon login
+neon init -y --org-id <org-id> --project-id <project-id> --branch production --services postgres
+neon deploy        # applies neon.ts and writes DATABASE_URL + DATABASE_URL_UNPOOLED
+                   # into .env (or .env.local when there is no .env)
+npm run db:migrate # uses the direct DATABASE_URL_UNPOOLED
+```
+
+The app reads the pooled `DATABASE_URL` (its host ends in `-pooler`). On Vercel, the pool
+is registered with `attachDatabasePool` from `@vercel/functions`, so idle connections close
+before a function suspends. Migrations use the direct `DATABASE_URL_UNPOOLED`, because
+Neon's pooler runs PgBouncer in transaction mode. `npm run db:migrate` loads `.env` and
+then `.env.local` (the later file wins, as in Next.js).
+
+On Vercel, set `DATABASE_URL` (pooled) for the Production environment, and the other
+variables from [Configuration](#configuration-env). Instead of copying the connection
+string by hand, the Neon-Managed Vercel integration can set `DATABASE_URL` and
+`DATABASE_URL_UNPOOLED`: choose `production` as its Production branch, and remove any
+existing `DATABASE_URL` from the Vercel project first.
 
 ## Using the app
 
@@ -205,6 +234,7 @@ lib/server/
   dashboard.ts   read model for the UI (no secrets)
   balance-sheet.ts  net worth and the Assets | Liabilities split by account type (pure)
 db/migrations/   SQL schema
+neon.ts          Neon config (services and branch policy) applied by `neon deploy`
 ```
 
 Security notes:

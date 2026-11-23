@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { plaidBaseUrl } from "./plaid/client";
-import { ConfigError, readAuthSecret, readDatabaseUrl, readPlaidConfig } from "./env";
+import { ConfigError, readAuthSecret, readDatabaseUrl, readMigrationDatabaseUrl, readPlaidConfig } from "./env";
 
 describe("readPlaidConfig", () => {
   it("defaults PLAID_ENV to sandbox", () => {
@@ -44,6 +44,24 @@ describe("readDatabaseUrl", () => {
     expect(readDatabaseUrl({ DATABASE_URL: "postgres://vault:vault@localhost:5432/vault" })).toBe(
       "postgres://vault:vault@localhost:5432/vault",
     );
+  });
+});
+
+describe("readMigrationDatabaseUrl", () => {
+  it("prefers the direct DATABASE_URL_UNPOOLED", () => {
+    expect(
+      readMigrationDatabaseUrl({
+        DATABASE_URL: "postgres://u:p@ep-x-pooler.neon.tech/db",
+        DATABASE_URL_UNPOOLED: "postgres://u:p@ep-x.neon.tech/db",
+      }),
+    ).toBe("postgres://u:p@ep-x.neon.tech/db");
+  });
+
+  it("falls back to DATABASE_URL when DATABASE_URL_UNPOOLED is unset or blank", () => {
+    const local = "postgres://vault:vault@localhost:5432/vault";
+    expect(readMigrationDatabaseUrl({ DATABASE_URL: local })).toBe(local);
+    expect(readMigrationDatabaseUrl({ DATABASE_URL: local, DATABASE_URL_UNPOOLED: " " })).toBe(local);
+    expect(() => readMigrationDatabaseUrl({})).toThrow(ConfigError);
   });
 });
 
