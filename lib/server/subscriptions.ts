@@ -22,6 +22,8 @@ export interface SubscriptionOverride {
 interface StoredOverride extends SubscriptionOverride {
   /** The day the decision was first saved. */
   createdOn: string;
+  /** When the decision was last changed, in epoch seconds. */
+  updatedAt: number;
 }
 
 export interface SubscriptionCharge {
@@ -147,8 +149,10 @@ export async function getOverrides(db: Queryable, userId: string): Promise<Store
     display_name: string | null;
     cancelled_at: string | null;
     created_on: string;
+    updated_at: number;
   }>(
-    `SELECT stream_key, status, kind, display_name, cancelled_at::text AS cancelled_at, created_at::date::text AS created_on
+    `SELECT stream_key, status, kind, display_name, cancelled_at::text AS cancelled_at, created_at::date::text AS created_on,
+       extract(epoch FROM updated_at)::float8 AS updated_at
      FROM subscription_overrides WHERE user_id = $1`,
     [userId],
   );
@@ -159,6 +163,7 @@ export async function getOverrides(db: Queryable, userId: string): Promise<Store
     displayName: row.display_name,
     cancelledAt: row.cancelled_at,
     createdOn: row.created_on,
+    updatedAt: row.updated_at,
   }));
 }
 
@@ -290,8 +295,10 @@ function buildSubscriptions(
 
   const inherited: [string, string][] = [];
   for (const stream of detectRecurring(inputs, today)) {
+    const own = [stream.key, ...stream.aliasKeys].map((key) => byKey.get(key)).find(Boolean);
+    const band = stream.bandKeys.map((key) => byKey.get(key)).find(Boolean);
     const override =
-      [stream.key, ...stream.aliasKeys].map((key) => byKey.get(key)).find(Boolean) ??
+      (band && (!own || band.updatedAt > own.updatedAt) ? band : own) ??
       stream.parentKeys
         .map((key) => byKey.get(key))
         .find((parent) => parent !== undefined && stream.firstDate <= parent.createdOn) ??

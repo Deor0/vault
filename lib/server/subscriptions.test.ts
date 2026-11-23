@@ -265,6 +265,24 @@ describe("getSubscriptions", () => {
     ]);
   });
 
+  it("keeps a plan's decision when its sibling plan ends and the merchant's charges merge back into one stream", async () => {
+    const icloud = monthly("2026-01", 29, 5).map((date) => charge(date, 2.99, "Apple"));
+    const tv = monthly("2026-01", 6, 14).map((date) => charge(date, 19.95, "Apple"));
+    const plaid = await link(userId, [...icloud.slice(0, 6), ...tv]);
+    await saveOverride(db, userId, { streamKey: "n:apple", displayName: "Apple stuff" });
+    await db.query("UPDATE subscription_overrides SET created_at = '2026-02-01' WHERE stream_key = 'n:apple'");
+
+    let data = await getSubscriptions(db, userId, "2026-07-01");
+    const split = [...data.active, ...data.inactive].find((sub) => sub.key === "n:apple@3")!;
+    await saveOverride(db, userId, { streamKey: split.key, displayName: "iCloud+", status: "ignored" });
+
+    plaid.syncTransactions.mockResolvedValueOnce(makeSyncPage({ added: icloud.slice(6), next_cursor: "c2" }));
+    await syncAllItems({ db, plaid, encryptionKey }, userId);
+    data = await getSubscriptions(db, userId, "2028-05-20");
+    expect(data.active.map((sub) => sub.name)).not.toContain("Apple stuff");
+    expect(data.ignored.map((sub) => [sub.key, sub.name, sub.status])).toEqual([["n:apple", "iCloud+", "ignored"]]);
+  });
+
   it("shows each user only their own subscriptions and decisions", async () => {
     await link(userId, history());
     const other = await createTestUser(db, "someone-else@example.com");

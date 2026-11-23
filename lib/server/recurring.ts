@@ -43,6 +43,8 @@ export interface RecurringStream {
   aliasKeys: string[];
   /** Keys of the whole merchant group this amount band was split from; a decision stored there applies only if this band's charges predate it. */
   parentKeys: string[];
+  /** For a whole merchant group: the amount-band keys its latest plan had while the group was split. A newer decision stored there wins. */
+  bandKeys: string[];
   label: string;
   merchantName: string | null;
   website: string | null;
@@ -194,7 +196,8 @@ export function detectRecurring(transactions: RecurringInput[], today: string): 
 
     const whole = classify(key, aliasKeys, charges, today);
     if (whole) {
-      streams.push(whole);
+      const suffix = `@${Math.round(charges[charges.length - 1].amount)}`;
+      streams.push({ ...whole, bandKeys: [key, ...aliasKeys].map((base) => `${base}${suffix}`) });
       continue;
     }
     // Splitting by amount finds two plans billed by one merchant; for coffee shops it only finds coincidences.
@@ -312,6 +315,7 @@ function classify(
     key,
     aliasKeys,
     parentKeys: [],
+    bandKeys: [],
     label: last.merchantName ?? last.name,
     merchantName: last.merchantName,
     website: charges.map((txn) => txn.website).findLast((website) => website) ?? null,
