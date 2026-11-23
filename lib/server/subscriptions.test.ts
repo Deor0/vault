@@ -245,6 +245,26 @@ describe("getSubscriptions", () => {
     expect(data.active.map((sub) => [sub.name, sub.amount, sub.status])).toEqual([["Apple", 19.95, "detected"]]);
   });
 
+  it("keeps the original decision date when it copies a decision onto a re-keyed stream", async () => {
+    const plaid = await link(userId, monthly("2026-06", 5, 9).map((date) => charge(date, 11.99, "Hulu")));
+    await saveOverride(db, userId, { streamKey: "n:hulu", status: "ignored" });
+    await db.query("UPDATE subscription_overrides SET created_at = '2026-10-15' WHERE stream_key = 'n:hulu'");
+
+    plaid.syncTransactions.mockResolvedValueOnce(
+      makeSyncPage({ added: [charge("2026-11-09", 11.99, "Hulu", { merchant_entity_id: "ent-hulu" })], next_cursor: "c2" }),
+    );
+    await syncAllItems({ db, plaid, encryptionKey }, userId);
+    await getSubscriptions(db, userId, TODAY);
+
+    const { rows } = await db.query(
+      "SELECT stream_key, created_at::date::text AS created_on FROM subscription_overrides ORDER BY stream_key",
+    );
+    expect(rows).toEqual([
+      { stream_key: "e:ent-hulu", created_on: "2026-10-15" },
+      { stream_key: "n:hulu", created_on: "2026-10-15" },
+    ]);
+  });
+
   it("shows each user only their own subscriptions and decisions", async () => {
     await link(userId, history());
     const other = await createTestUser(db, "someone-else@example.com");
