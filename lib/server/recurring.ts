@@ -91,7 +91,7 @@ const RULES: CadenceRule[] = [
   { cadence: "annual", days: 365.25, tolerance: 12, minCharges: 2, months: 12 },
 ];
 
-export const PERIOD_DAYS: Record<Cadence, number> = Object.fromEntries(RULES.map((r) => [r.cadence, r.days])) as Record<
+const PERIOD_DAYS: Record<Cadence, number> = Object.fromEntries(RULES.map((r) => [r.cadence, r.days])) as Record<
   Cadence,
   number
 >;
@@ -200,9 +200,15 @@ export function detectRecurring(transactions: RecurringInput[], today: string): 
     // Splitting by amount finds two plans billed by one merchant; for coffee shops it only finds coincidences.
     const habitual = charges.some((txn) => txn.categoryPrimary !== null && HABITUAL_PRIMARY.has(txn.categoryPrimary));
     if (habitual) continue;
-    for (const band of amountBands(charges)) {
-      const suffix = `@${Math.round(median(band.map((txn) => txn.amount)))}`;
-      const pastSuffixes = [...new Set(band.map((txn) => `@${Math.round(txn.amount)}`))].filter((past) => past !== suffix);
+    const bands = amountBands(charges).map((band) => ({
+      band,
+      suffix: `@${Math.round(median(band.map((txn) => txn.amount)))}`,
+    }));
+    const currentSuffixes = new Set(bands.map(({ suffix }) => suffix));
+    for (const { band, suffix } of bands) {
+      const pastSuffixes = [...new Set(band.map((txn) => `@${Math.round(txn.amount)}`))].filter(
+        (past) => !currentSuffixes.has(past),
+      );
       const stream = classify(
         `${key}${suffix}`,
         [

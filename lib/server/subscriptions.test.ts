@@ -158,21 +158,20 @@ describe("getSubscriptions", () => {
   it("keeps a cancellation found under an old key when the user edits the stream again", async () => {
     const plaid = await link(userId, monthly("2026-06", 5, 9).map((date) => charge(date, 11.99, "Hulu")));
     const before = (await getSubscriptions(db, userId, TODAY)).active[0];
-    await saveOverride(db, userId, { streamKey: before.key, inheritFrom: before.inheritedFrom, status: "cancelled" }, "2026-11-10");
+    await saveOverride(db, userId, { streamKey: before.key, status: "cancelled" }, "2026-11-10");
 
     plaid.syncTransactions.mockResolvedValueOnce(
       makeSyncPage({ added: [charge("2026-11-09", 11.99, "Hulu", { merchant_entity_id: "ent-hulu" })], next_cursor: "c2" }),
     );
     await syncAllItems({ db, plaid, encryptionKey }, userId);
     const renamed = (await getSubscriptions(db, userId, TODAY)).inactive[0];
-    expect(renamed).toMatchObject({ key: "e:ent-hulu", inheritedFrom: "n:hulu", status: "cancelled" });
-    await saveOverride(db, userId, { streamKey: renamed.key, inheritFrom: renamed.inheritedFrom, displayName: "Hulu (no ads)" });
+    expect(renamed).toMatchObject({ key: "e:ent-hulu", status: "cancelled" });
+    await saveOverride(db, userId, { streamKey: renamed.key, displayName: "Hulu (no ads)" });
 
     const after = await getSubscriptions(db, userId, TODAY);
     expect(after.active).toEqual([]);
     expect(after.inactive[0]).toMatchObject({
       key: "e:ent-hulu",
-      inheritedFrom: null,
       name: "Hulu (no ads)",
       status: "cancelled",
       cancelledAt: "2026-11-10",
@@ -191,14 +190,14 @@ describe("getSubscriptions", () => {
     );
     await syncAllItems({ db, plaid, encryptionKey }, userId);
     let data = await getSubscriptions(db, userId, TODAY);
-    expect(data.ignored.map((sub) => [sub.amount, sub.inheritedFrom])).toEqual([[2.99, "n:apple"]]);
-    expect(data.active.map((sub) => [sub.amount, sub.status, sub.needsReview, sub.inheritedFrom])).toEqual([
-      [19.95, "detected", true, null],
+    expect(data.ignored.map((sub) => [sub.amount, sub.status])).toEqual([[2.99, "ignored"]]);
+    expect(data.active.map((sub) => [sub.amount, sub.status, sub.needsReview])).toEqual([
+      [19.95, "detected", true],
     ]);
 
     const old = data.ignored[0];
-    await saveOverride(db, userId, { streamKey: old.key, inheritFrom: old.inheritedFrom, displayName: "iCloud+" });
-    await saveOverride(db, userId, { streamKey: data.active[0].key, inheritFrom: data.active[0].inheritedFrom, status: "cancelled" }, TODAY);
+    await saveOverride(db, userId, { streamKey: old.key, displayName: "iCloud+" });
+    await saveOverride(db, userId, { streamKey: data.active[0].key, status: "cancelled" }, TODAY);
     data = await getSubscriptions(db, userId, TODAY);
     expect(data.ignored.map((sub) => [sub.name, sub.amount, sub.status])).toEqual([["iCloud+", 2.99, "ignored"]]);
     expect(data.inactive.map((sub) => [sub.name, sub.amount, sub.status])).toEqual([["Apple", 19.95, "cancelled"]]);
@@ -211,7 +210,7 @@ describe("getSubscriptions", () => {
     ]);
     const icloud = (await getSubscriptions(db, userId, "2026-04-20")).active.find((sub) => sub.amount === 2.99)!;
     expect(icloud.key).toBe("n:apple@3");
-    await saveOverride(db, userId, { streamKey: icloud.key, inheritFrom: icloud.inheritedFrom, displayName: "iCloud+", status: "ignored" });
+    await saveOverride(db, userId, { streamKey: icloud.key, displayName: "iCloud+", status: "ignored" });
 
     plaid.syncTransactions.mockResolvedValueOnce(
       makeSyncPage({ added: monthly("2026-05", 7, 5).map((date) => charge(date, 3.99, "Apple")), next_cursor: "c2" }),
@@ -222,19 +221,28 @@ describe("getSubscriptions", () => {
     expect(data.active.map((sub) => [sub.key, sub.status])).toEqual([["n:apple@10", "detected"]]);
   });
 
-  it("keeps a pre-split decision on a long-running plan once its first charge leaves the loaded history", async () => {
-    await link(userId, [
-      ...monthly("2026-01", 26, 5).map((date) => charge(date, 2.99, "Apple")),
-      ...monthly("2027-06", 9, 14).map((date) => charge(date, 19.95, "Apple")),
-    ]);
-    await saveOverride(db, userId, { streamKey: "n:apple", displayName: "iCloud+" });
+  it("keeps a pre-split decision on its plan for years, and never passes it to a plan that started later", async () => {
+    const icloud = monthly("2026-01", 33, 5).map((date) => charge(date, 2.99, "Apple"));
+    const tv = monthly("2026-08", 26, 14).map((date) => charge(date, 19.95, "Apple"));
+    const plaid = await link(userId, icloud.slice(0, 7));
+    await saveOverride(db, userId, { streamKey: "n:apple", displayName: "iCloud+", status: "ignored" });
     await db.query("UPDATE subscription_overrides SET created_at = '2026-01-15' WHERE stream_key = 'n:apple'");
 
-    const data = await getSubscriptions(db, userId, "2028-03-01");
-    expect(data.active.map((sub) => [sub.name, sub.amount, sub.status, sub.inheritedFrom]).sort()).toEqual([
-      ["Apple", 19.95, "detected", null],
-      ["iCloud+", 2.99, "confirmed", "n:apple"],
-    ]);
+    plaid.syncTransactions.mockResolvedValueOnce(
+      makeSyncPage({ added: [...icloud.slice(7, 9), ...tv.slice(0, 2)], next_cursor: "c2" }),
+    );
+    await syncAllItems({ db, plaid, encryptionKey }, userId);
+    let data = await getSubscriptions(db, userId, "2026-10-01");
+    expect(data.ignored.map((sub) => [sub.name, sub.amount])).toEqual([["iCloud+", 2.99]]);
+    expect(data.active.map((sub) => [sub.name, sub.amount, sub.status])).toEqual([["Apple", 19.95, "detected"]]);
+
+    plaid.syncTransactions.mockResolvedValueOnce(
+      makeSyncPage({ added: [...icloud.slice(9), ...tv.slice(2)], next_cursor: "c3" }),
+    );
+    await syncAllItems({ db, plaid, encryptionKey }, userId);
+    data = await getSubscriptions(db, userId, "2028-10-01");
+    expect(data.ignored.map((sub) => [sub.name, sub.amount])).toEqual([["iCloud+", 2.99]]);
+    expect(data.active.map((sub) => [sub.name, sub.amount, sub.status])).toEqual([["Apple", 19.95, "detected"]]);
   });
 
   it("shows each user only their own subscriptions and decisions", async () => {

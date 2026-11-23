@@ -1,6 +1,6 @@
 import { cancelRoutes, type CancelRoute } from "./cancel-links";
 import type { Queryable } from "./db/types";
-import { addDays, detectRecurring, PERIOD_DAYS, projectCharges, toDays, type Cadence, type RecurringInput } from "./recurring";
+import { addDays, detectRecurring, projectCharges, toDays, type Cadence, type RecurringInput } from "./recurring";
 
 /**
  * The Subscriptions page's read model: recurring charges detected from the
@@ -34,8 +34,6 @@ export interface SubscriptionCharge {
 
 export interface Subscription {
   key: string;
-  /** The other key this stream's decision was found under (saved before a re-key), or null when it is stored under `key`. */
-  inheritedFrom: string | null;
   name: string;
   /** The name detection found, shown when the user renamed the stream. */
   detectedName: string;
@@ -170,13 +168,11 @@ export interface OverrideInput {
   kind?: SubscriptionKind | null;
   displayName?: string | null;
   cancelledAt?: string | null;
-  /** A key this stream's decision was found under; its fields seed the stream's own row when there is none yet. */
-  inheritFrom?: string | null;
 }
 
 /**
  * Record the user's decision about a stream. Fields left out keep their stored
- * value (or the `inheritFrom` row's value when the stream has no row yet). Marking a stream cancelled without a date uses `today`; any other
+ * value. Marking a stream cancelled without a date uses `today`; any other
  * status clears the cancellation date.
  */
 export async function saveOverride(
@@ -196,12 +192,7 @@ export async function saveOverride(
     cancelled_at: string | null;
   }>(
     `INSERT INTO subscription_overrides (user_id, stream_key, status, kind, display_name, cancelled_at)
-     SELECT $1, $2, COALESCE($3::text, src.status, 'confirmed'),
-       CASE WHEN $4 THEN $5::text ELSE src.kind END,
-       CASE WHEN $6 THEN $7::text ELSE src.display_name END,
-       CASE WHEN $8 THEN $9::date ELSE src.cancelled_at END
-     FROM (SELECT 1) AS one
-       LEFT JOIN subscription_overrides src ON src.user_id = $1 AND src.stream_key = $10::text
+     VALUES ($1, $2, COALESCE($3, 'confirmed'), $5, $7, $9::date)
      ON CONFLICT (user_id, stream_key) DO UPDATE SET
        status = CASE WHEN $3::text IS NULL THEN subscription_overrides.status ELSE $3 END,
        kind = CASE WHEN $4 THEN $5 ELSE subscription_overrides.kind END,
@@ -219,7 +210,6 @@ export async function saveOverride(
       displayName ?? null,
       cancelledAt !== undefined,
       cancelledAt ?? null,
-      input.inheritFrom ?? null,
     ],
   );
   const row = rows[0];
@@ -248,14 +238,29 @@ export async function getSubscriptions(
     loadTransactions(db, userId, addDays(today, -HISTORY_DAYS)),
     getOverrides(db, userId),
   ]);
-  return buildSubscriptions(rows, overrides, today);
+  const { data, inherited } = buildSubscriptions(rows, overrides, today);
+  for (const [streamKey, fromKey] of inherited) {
+    await db.query(
+      `INSERT INTO subscription_overrides (user_id, stream_key, status, kind, display_name, cancelled_at)
+       SELECT user_id, $3, status, kind, display_name, cancelled_at
+       FROM subscription_overrides WHERE user_id = $1 AND stream_key = $2
+       ON CONFLICT (user_id, stream_key) DO NOTHING`,
+      [userId, fromKey, streamKey],
+    );
+  }
+  return data;
 }
 
-export function buildSubscriptions(
+/**
+ * Match detected streams with the user's decisions. `inherited` lists each
+ * stream whose decision was found under another key (stored before a re-key or
+ * a split), as [stream key, stored key], so it can be copied onto the stream.
+ */
+function buildSubscriptions(
   rows: TransactionRow[],
   overrides: StoredOverride[],
   today: string,
-): SubscriptionsData {
+): { data: SubscriptionsData; inherited: [string, string][] } {
   const accounts = new Map(rows.map((row) => [row.account_id, { name: row.account_name, mask: row.account_mask }]));
   const inputs: RecurringInput[] = rows.map((row) => ({
     id: row.id,
@@ -283,19 +288,15 @@ export function buildSubscriptions(
     transactionCount: rows.length,
   };
 
-  const historyStart = addDays(today, -HISTORY_DAYS);
+  const inherited: [string, string][] = [];
   for (const stream of detectRecurring(inputs, today)) {
     const override =
       [stream.key, ...stream.aliasKeys].map((key) => byKey.get(key)).find(Boolean) ??
       stream.parentKeys
         .map((key) => byKey.get(key))
-        .find(
-          (parent) =>
-            parent !== undefined &&
-            (stream.firstDate <= parent.createdOn ||
-              stream.firstDate <= addDays(historyStart, Math.ceil(PERIOD_DAYS[stream.cadence]))),
-        ) ??
+        .find((parent) => parent !== undefined && stream.firstDate <= parent.createdOn) ??
       null;
+    if (override && override.streamKey !== stream.key) inherited.push([stream.key, override.streamKey]);
     const account = accounts.get(stream.accountId);
     const charges: SubscriptionCharge[] = stream.charges
       .map((charge) => {
@@ -317,7 +318,6 @@ export function buildSubscriptions(
 
     const subscription: Subscription = {
       key: stream.key,
-      inheritedFrom: override && override.streamKey !== stream.key ? override.streamKey : null,
       name,
       detectedName: stream.label,
       kind: override?.kind ?? kind,
@@ -354,7 +354,7 @@ export function buildSubscriptions(
 
   data.inactive.sort((a, b) => b.lastDate.localeCompare(a.lastDate));
   data.ignored.sort((a, b) => a.name.localeCompare(b.name));
-  return data;
+  return { data, inherited };
 }
 
 export function inView(subscription: Pick<Subscription, "kind">, view: SubscriptionView): boolean {
