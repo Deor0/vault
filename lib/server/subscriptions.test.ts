@@ -204,6 +204,39 @@ describe("getSubscriptions", () => {
     expect(data.inactive.map((sub) => [sub.name, sub.amount, sub.status])).toEqual([["Apple", 19.95, "cancelled"]]);
   });
 
+  it("keeps a plan's decision after its price rises enough to move its typical amount", async () => {
+    const plaid = await link(userId, [
+      ...monthly("2026-01", 4, 5).map((date) => charge(date, 2.99, "Apple")),
+      ...monthly("2026-01", 11, 14).map((date) => charge(date, 9.99, "Apple")),
+    ]);
+    const icloud = (await getSubscriptions(db, userId, "2026-04-20")).active.find((sub) => sub.amount === 2.99)!;
+    expect(icloud.key).toBe("n:apple@3");
+    await saveOverride(db, userId, { streamKey: icloud.key, inheritFrom: icloud.inheritedFrom, displayName: "iCloud+", status: "ignored" });
+
+    plaid.syncTransactions.mockResolvedValueOnce(
+      makeSyncPage({ added: monthly("2026-05", 7, 5).map((date) => charge(date, 3.99, "Apple")), next_cursor: "c2" }),
+    );
+    await syncAllItems({ db, plaid, encryptionKey }, userId);
+    const data = await getSubscriptions(db, userId, TODAY);
+    expect(data.ignored.map((sub) => [sub.key, sub.name, sub.amount])).toEqual([["n:apple@4", "iCloud+", 3.99]]);
+    expect(data.active.map((sub) => [sub.key, sub.status])).toEqual([["n:apple@10", "detected"]]);
+  });
+
+  it("keeps a pre-split decision on a long-running plan once its first charge leaves the loaded history", async () => {
+    await link(userId, [
+      ...monthly("2026-01", 26, 5).map((date) => charge(date, 2.99, "Apple")),
+      ...monthly("2027-06", 9, 14).map((date) => charge(date, 19.95, "Apple")),
+    ]);
+    await saveOverride(db, userId, { streamKey: "n:apple", displayName: "iCloud+" });
+    await db.query("UPDATE subscription_overrides SET created_at = '2026-01-15' WHERE stream_key = 'n:apple'");
+
+    const data = await getSubscriptions(db, userId, "2028-03-01");
+    expect(data.active.map((sub) => [sub.name, sub.amount, sub.status, sub.inheritedFrom]).sort()).toEqual([
+      ["Apple", 19.95, "detected", null],
+      ["iCloud+", 2.99, "confirmed", "n:apple"],
+    ]);
+  });
+
   it("shows each user only their own subscriptions and decisions", async () => {
     await link(userId, history());
     const other = await createTestUser(db, "someone-else@example.com");

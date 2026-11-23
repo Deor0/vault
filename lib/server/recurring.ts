@@ -91,7 +91,7 @@ const RULES: CadenceRule[] = [
   { cadence: "annual", days: 365.25, tolerance: 12, minCharges: 2, months: 12 },
 ];
 
-const PERIOD_DAYS: Record<Cadence, number> = Object.fromEntries(RULES.map((r) => [r.cadence, r.days])) as Record<
+export const PERIOD_DAYS: Record<Cadence, number> = Object.fromEntries(RULES.map((r) => [r.cadence, r.days])) as Record<
   Cadence,
   number
 >;
@@ -202,9 +202,13 @@ export function detectRecurring(transactions: RecurringInput[], today: string): 
     if (habitual) continue;
     for (const band of amountBands(charges)) {
       const suffix = `@${Math.round(median(band.map((txn) => txn.amount)))}`;
+      const pastSuffixes = [...new Set(band.map((txn) => `@${Math.round(txn.amount)}`))].filter((past) => past !== suffix);
       const stream = classify(
         `${key}${suffix}`,
-        aliasKeys.map((alias) => `${alias}${suffix}`),
+        [
+          ...aliasKeys.map((alias) => `${alias}${suffix}`),
+          ...pastSuffixes.flatMap((past) => [key, ...aliasKeys].map((base) => `${base}${past}`)),
+        ],
         band,
         today,
       );

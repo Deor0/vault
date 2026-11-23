@@ -1,6 +1,6 @@
 import { cancelRoutes, type CancelRoute } from "./cancel-links";
 import type { Queryable } from "./db/types";
-import { addDays, detectRecurring, projectCharges, toDays, type Cadence, type RecurringInput } from "./recurring";
+import { addDays, detectRecurring, PERIOD_DAYS, projectCharges, toDays, type Cadence, type RecurringInput } from "./recurring";
 
 /**
  * The Subscriptions page's read model: recurring charges detected from the
@@ -283,12 +283,18 @@ export function buildSubscriptions(
     transactionCount: rows.length,
   };
 
+  const historyStart = addDays(today, -HISTORY_DAYS);
   for (const stream of detectRecurring(inputs, today)) {
     const override =
       [stream.key, ...stream.aliasKeys].map((key) => byKey.get(key)).find(Boolean) ??
       stream.parentKeys
         .map((key) => byKey.get(key))
-        .find((parent) => parent !== undefined && stream.firstDate <= parent.createdOn) ??
+        .find(
+          (parent) =>
+            parent !== undefined &&
+            (stream.firstDate <= parent.createdOn ||
+              stream.firstDate <= addDays(historyStart, Math.ceil(PERIOD_DAYS[stream.cadence]))),
+        ) ??
       null;
     const account = accounts.get(stream.accountId);
     const charges: SubscriptionCharge[] = stream.charges
