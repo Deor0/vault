@@ -246,10 +246,17 @@ export async function getSubscriptions(
   const { data, inherited } = buildSubscriptions(rows, overrides, today);
   for (const [streamKey, fromKey] of inherited) {
     await db.query(
-      `INSERT INTO subscription_overrides (user_id, stream_key, status, kind, display_name, cancelled_at, created_at)
-       SELECT user_id, $3, status, kind, display_name, cancelled_at, created_at
+      `INSERT INTO subscription_overrides
+         (user_id, stream_key, status, kind, display_name, cancelled_at, created_at, updated_at)
+       SELECT user_id, $3, status, kind, display_name, cancelled_at, created_at, updated_at
        FROM subscription_overrides WHERE user_id = $1 AND stream_key = $2
-       ON CONFLICT (user_id, stream_key) DO NOTHING`,
+       ON CONFLICT (user_id, stream_key) DO UPDATE SET
+         status = EXCLUDED.status,
+         kind = EXCLUDED.kind,
+         display_name = EXCLUDED.display_name,
+         cancelled_at = EXCLUDED.cancelled_at,
+         created_at = EXCLUDED.created_at,
+         updated_at = EXCLUDED.updated_at`,
       [userId, fromKey, streamKey],
     );
   }

@@ -281,6 +281,28 @@ describe("getSubscriptions", () => {
     data = await getSubscriptions(db, userId, "2028-05-20");
     expect(data.active.map((sub) => sub.name)).not.toContain("Apple stuff");
     expect(data.ignored.map((sub) => [sub.key, sub.name, sub.status])).toEqual([["n:apple", "iCloud+", "ignored"]]);
+
+    await saveOverride(db, userId, { streamKey: "n:apple", kind: "bill" });
+    data = await getSubscriptions(db, userId, "2028-05-20");
+    expect(data.ignored.map((sub) => [sub.key, sub.name, sub.status, sub.kind])).toEqual([
+      ["n:apple", "iCloud+", "ignored", "bill"],
+    ]);
+  });
+
+  it("finds a plan's decision after a merge when its price changed while the merchant was split", async () => {
+    const icloud = [
+      ...monthly("2026-01", 6, 5).map((date) => charge(date, 2.99, "Apple")),
+      ...monthly("2026-07", 23, 5).map((date) => charge(date, 3.99, "Apple")),
+    ];
+    const tv = monthly("2026-01", 6, 14).map((date) => charge(date, 19.95, "Apple"));
+    const plaid = await link(userId, [...icloud.slice(0, 6), ...tv]);
+    const split = (await getSubscriptions(db, userId, "2026-07-01")).active.find((sub) => sub.key === "n:apple@3")!;
+    await saveOverride(db, userId, { streamKey: split.key, displayName: "iCloud+", status: "ignored" });
+
+    plaid.syncTransactions.mockResolvedValueOnce(makeSyncPage({ added: icloud.slice(6), next_cursor: "c2" }));
+    await syncAllItems({ db, plaid, encryptionKey }, userId);
+    const data = await getSubscriptions(db, userId, "2028-05-20");
+    expect(data.ignored.map((sub) => [sub.key, sub.name, sub.status])).toEqual([["n:apple", "iCloud+", "ignored"]]);
   });
 
   it("shows each user only their own subscriptions and decisions", async () => {

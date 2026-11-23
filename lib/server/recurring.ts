@@ -196,8 +196,16 @@ export function detectRecurring(transactions: RecurringInput[], today: string): 
 
     const whole = classify(key, aliasKeys, charges, today);
     if (whole) {
-      const suffix = `@${Math.round(charges[charges.length - 1].amount)}`;
-      streams.push({ ...whole, bandKeys: [key, ...aliasKeys].map((base) => `${base}${suffix}`) });
+      const latest = charges[charges.length - 1].amount;
+      const suffixes = new Set(
+        [latest, ...charges.map((txn) => txn.amount).reverse()]
+          .filter((amount) => Math.abs(amount - latest) <= Math.max(2, 0.25 * latest))
+          .map((amount) => `@${Math.round(amount)}`),
+      );
+      streams.push({
+        ...whole,
+        bandKeys: [...suffixes].flatMap((suffix) => [key, ...aliasKeys].map((base) => `${base}${suffix}`)),
+      });
       continue;
     }
     // Splitting by amount finds two plans billed by one merchant; for coffee shops it only finds coincidences.
