@@ -10,7 +10,6 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "db:up": "docker compose up -d db",
     "db:migrate": "tsx --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/migrate.ts",
     "gen:key": "openssl rand -base64 32"
   },
